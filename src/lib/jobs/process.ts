@@ -1,6 +1,6 @@
 import path from "node:path";
 import { db } from "@/lib/db";
-import { env } from "@/lib/env";
+import { getAiSettings } from "@/lib/app-settings";
 import { extractDocument } from "@/lib/extract";
 import { analyzeCv } from "@/lib/ai/analyze";
 import { AiError } from "@/lib/ai/client";
@@ -56,7 +56,7 @@ export async function processApplication(applicationId: string): Promise<void> {
       return;
     }
 
-    await setStatus(app.id, "analiza");
+    await setStatus(app.id, "analiza", "Model AI czyta CV i ofertę…");
     const requirements = version.requirements.map((r) => ({
       code: r.code,
       text: r.text,
@@ -64,7 +64,16 @@ export async function processApplication(applicationId: string): Promise<void> {
       category: r.category,
       weight: r.weight,
     }));
-    const result = await analyzeCv({ title: app.offer.title, rawText: app.offer.rawText, requirements }, doc.extractedText);
+    const result = await analyzeCv(
+      { title: app.offer.title, rawText: app.offer.rawText, requirements },
+      doc.extractedText,
+      // postęp widoczny na liście kandydatów (przy modelu lokalnym analiza może trwać kilkanaście minut)
+      ({ generatedChars, elapsedMs }) => {
+        const min = Math.floor(elapsedMs / 60000);
+        const pct = Math.min(95, Math.round((generatedChars / 9000) * 100));
+        void setStatus(app.id, "analiza", `Generowanie oceny: ok. ${pct}% · ${min} min`).catch(() => undefined);
+      },
+    );
 
     // 3. Wynik liczony deterministycznie przez kod
     const scoring = await loadScoringConfig();
@@ -79,7 +88,9 @@ export async function processApplication(applicationId: string): Promise<void> {
           applicationId: app.id,
           requirementVersionId: version.id,
           model: result.model,
-          effort: env.effort,
+          effort: result.provider === "claude" ? getAiSettings().claude.effort : null,
+          provider: result.provider,
+          costUsd: result.costUsd,
           promptHash: result.promptHash,
           resultJson: JSON.stringify(result.stored),
           matchScore: match.score,

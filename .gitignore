@@ -48,3 +48,6 @@ next-env.d.ts
 /backups/
 *.db
 *.db-journal
+
+# paczki do pobrania (publikowane jako GitHub Release)
+/dist/

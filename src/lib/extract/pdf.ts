@@ -1,5 +1,4 @@
 import path from "node:path";
-import { createRequire } from "node:module";
 import { layoutPage, type TextBox } from "./pdf-layout";
 
 // Strona uznana za „bez warstwy tekstowej”, jeśli ma mniej znaków niż próg (np. skan z numerem strony).
@@ -8,9 +7,13 @@ export const MIN_CHARS_PER_PAGE = 40;
 type PdfJs = typeof import("pdfjs-dist/legacy/build/pdf.mjs");
 let pdfjsPromise: Promise<PdfJs> | null = null;
 
+/** Folder pakietu w node_modules aplikacji (bez require.resolve – bundler podmienia je przy budowaniu). */
+export function packageDir(name: string): string {
+  return path.join(process.cwd(), "node_modules", ...name.split("/"));
+}
+
 function pdfjsDir(): string {
-  const require = createRequire(path.join(process.cwd(), "package.json"));
-  return path.dirname(require.resolve("pdfjs-dist/package.json"));
+  return packageDir("pdfjs-dist");
 }
 
 export async function loadPdfJs(): Promise<PdfJs> {

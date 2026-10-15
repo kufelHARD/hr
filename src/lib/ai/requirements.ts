@@ -6,6 +6,7 @@ import { loadCompanyContext } from "@/lib/settings";
 export async function extractRequirements(offerText: string): Promise<OfferExtraction> {
   const [prompt, company] = await Promise.all([loadPrompt("requirements-system.md"), loadCompanyContext()]);
   const res = await callStructured({
+    kind: "wymagania",
     system: prompt.text,
     content: [
       { text: `<kontekst_firmy>\n${company}\n</kontekst_firmy>` },

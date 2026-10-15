@@ -6,10 +6,17 @@ services:
     restart: unless-stopped
     ports:
       - "3000:3000"
-    env_file: .env
+    env_file:
+      - path: .env
+        required: false
     environment:
       DATA_DIR: /app/storage
       DATABASE_URL: file:/app/storage/app.db
+      BACKUP_DIR: /app/backups
+      # darmowy model lokalny: Ollama zainstalowana na komputerze-gospodarzu
+      OLLAMA_URL: http://host.docker.internal:11434
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       # dane osobowe kandydatów (baza + pliki) – trwałe, poza kontenerem
       - ./storage:/app/storage

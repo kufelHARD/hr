@@ -6,6 +6,7 @@ import { RECOMMENDATION_LABELS, CATEGORY_LABELS, type StoredAnalysis, type Requi
 import { POTENTIAL_COMPONENTS, POTENTIAL_LABELS, STATUS_LABELS, TYPE_LABELS, type RequirementType } from "@/lib/scoring";
 import type { ScoringConfig } from "@/lib/settings";
 import { ActionButton, AutoRefresh } from "@/components/client";
+import { formatPln } from "@/lib/ai/pricing";
 import {
   APPLICATION_STATUS,
   AiDisclaimer,
@@ -391,7 +392,9 @@ export default async function CandidatePage({ params, searchParams }: PageProps<
                       </div>
                       <div className="text-xs text-slate-400">
                         wymagania v{a.requirementVersion.version} · {a.model}
-                        {a.durationMs ? ` · ${Math.round(a.durationMs / 1000)} s` : ""}
+                        {a.durationMs ? ` · ${a.durationMs >= 120000 ? `${Math.round(a.durationMs / 60000)} min` : `${Math.round(a.durationMs / 1000)} s`}` : ""}
+                        {" · koszt: "}
+                        {a.provider === "ollama" ? "0 zł (lokalnie)" : a.costUsd != null ? `≈ ${formatPln(a.costUsd)}` : "–"}
                       </div>
                     </Link>
                   </li>

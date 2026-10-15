@@ -1,6 +1,8 @@
-import type { NextConfig } from "next";
+// @ts-check
+// Konfiguracja Next.js (plik .mjs – działa bez TypeScriptu także w wersji do pobrania).
 
-const nextConfig: NextConfig = {
+/** @type {import("next").NextConfig} */
+const nextConfig = {
   // Pakiety z kodem natywnym / workerami ładowane bezpośrednio przez Node (bez bundlowania)
   serverExternalPackages: [
     "better-sqlite3",
@@ -9,19 +11,12 @@ const nextConfig: NextConfig = {
     "@napi-rs/canvas",
     "tesseract.js",
     "mammoth",
+    "undici",
   ],
   experimental: {
     // CV wgrywane są pojedynczo, ale skany PDF bywają duże
     proxyClientMaxBodySize: "30mb",
     serverActions: { bodySizeLimit: "30mb" },
-  },
-  turbopack: {
-    rules: {
-      "*.css": {
-        loaders: ["@tailwindcss/turbopack"],
-        as: "*.css",
-      },
-    },
   },
 };
 

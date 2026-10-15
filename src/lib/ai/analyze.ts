@@ -1,4 +1,5 @@
-import { callStructured, loadPrompt, type AiUsage } from "./client";
+import { callStructured, loadPrompt, type AiUsage, type ProgressInfo } from "./client";
+import type { AiProvider } from "@/lib/app-settings";
 import { analysisSchema, type EvidenceCheck, type StoredAnalysis } from "./schemas";
 import { CATEGORY_LABELS, type RequirementCategory } from "./schemas";
 import { loadCompanyContext, loadTechMap, techMapToPrompt } from "@/lib/settings";
@@ -22,6 +23,8 @@ export type OfferForAnalysis = {
 export type AnalyzeResult = {
   stored: StoredAnalysis;
   usage: AiUsage;
+  provider: AiProvider;
+  costUsd: number | null;
   model: string;
   promptHash: string;
   durationMs: number;
@@ -48,7 +51,11 @@ export function verifyEvidence(output: StoredAnalysis["output"], cvText: string)
 }
 
 /** Analiza CV względem oferty. Wynik procentowy liczy osobno moduł scoring (deterministycznie). */
-export async function analyzeCv(offer: OfferForAnalysis, cvText: string): Promise<AnalyzeResult> {
+export async function analyzeCv(
+  offer: OfferForAnalysis,
+  cvText: string,
+  onProgress?: (p: ProgressInfo) => void,
+): Promise<AnalyzeResult> {
   const [prompt, company, techMap] = await Promise.all([
     loadPrompt("analysis-system.md"),
     loadCompanyContext(),
@@ -67,6 +74,8 @@ export async function analyzeCv(offer: OfferForAnalysis, cvText: string): Promis
   ].join("\n\n");
 
   const res = await callStructured({
+    kind: "analiza",
+    onProgress,
     system: prompt.text,
     content: [
       { text: offerBlock, cache: true },
@@ -96,6 +105,8 @@ export async function analyzeCv(offer: OfferForAnalysis, cvText: string): Promis
   return {
     stored: { output, evidence: verifyEvidence(output, cvText), missingRequirements },
     usage: res.usage,
+    provider: res.provider,
+    costUsd: res.costUsd,
     model: res.model,
     promptHash: prompt.hash,
     durationMs: res.durationMs,

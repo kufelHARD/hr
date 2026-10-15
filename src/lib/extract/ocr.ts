@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { createRequire } from "node:module";
+import { packageDir } from "./pdf";
 
 // OCR (tesseract.js, język polski + angielski). Dane językowe pochodzą z pakietów npm
 // @tesseract.js-data/pol i @tesseract.js-data/eng – OCR działa bez dostępu do internetu.
@@ -10,13 +10,12 @@ const LANGS = ["pol", "eng"] as const;
 async function prepareLangDir(): Promise<string> {
   const dir = path.join(process.cwd(), "node_modules", ".cache", "porownywarka-ocr");
   await fs.mkdir(dir, { recursive: true });
-  const require = createRequire(path.join(process.cwd(), "package.json"));
   for (const lang of LANGS) {
     const target = path.join(dir, `${lang}.traineddata.gz`);
     try {
       await fs.access(target);
     } catch {
-      const pkgDir = path.dirname(require.resolve(`@tesseract.js-data/${lang}/package.json`));
+      const pkgDir = packageDir(`@tesseract.js-data/${lang}`);
       await fs.copyFile(path.join(pkgDir, "4.0.0_best_int", `${lang}.traineddata.gz`), target);
     }
   }

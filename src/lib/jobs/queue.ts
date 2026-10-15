@@ -1,4 +1,5 @@
 import { env } from "@/lib/env";
+import { getAiSettings } from "@/lib/app-settings";
 import { processApplication } from "./process";
 
 // Prosta kolejka analiz w procesie aplikacji. Stan zadań jest w bazie (Application.status),
@@ -20,7 +21,9 @@ export function queueSnapshot() {
 }
 
 function pump() {
-  while (state.running.size < env.analysisConcurrency && state.pending.length > 0) {
+  // model lokalny przetwarza zapytania po kolei – równoległe analizy tylko spowolniłyby każdą z nich
+  const limit = getAiSettings().provider === "ollama" ? 1 : env.analysisConcurrency;
+  while (state.running.size < limit && state.pending.length > 0) {
     const id = state.pending.shift()!;
     state.running.add(id);
     processApplication(id)

@@ -1,0 +1,101 @@
+PORÓWNYWARKA CV – summ-it S.A.
+Instrukcja (Windows 10 / 11, 64-bit)
+=====================================
+
+Aplikacja jest bezpłatna. Domyślnie analizy CV wykonuje darmowy model AI
+działający na Twoim komputerze (program Ollama) – bez opłat i bez wysyłania
+CV do internetu.
+
+
+1. INSTALACJA
+-------------
+1. Jeśli Windows oznaczył pobrany plik ZIP jako pochodzący z internetu:
+   kliknij ZIP prawym przyciskiem → Właściwości → zaznacz „Odblokuj” → OK.
+2. Rozpakuj ZIP do wybranego folderu, np. Dokumenty
+   (NIE do „Program Files” – aplikacja zapisuje dane w swoim folderze).
+3. Uruchom plik „Uruchom.cmd” (dwuklik). Otworzy się czarne okno i po chwili
+   przeglądarka z aplikacją (adres http://localhost:3000).
+   Jeśli pojawi się ostrzeżenie Windows SmartScreen: „Więcej informacji” →
+   „Uruchom mimo to”.
+4. Przy pierwszym uruchomieniu ustaw hasło do aplikacji.
+
+Nie zamykaj czarnego okna podczas pracy – jego zamknięcie kończy działanie
+aplikacji. Aby wygodnie uruchamiać: prawy przycisk na „Uruchom.cmd” →
+„Wyślij do” → „Pulpit (utwórz skrót)”.
+
+
+2. DARMOWY MODEL AI (OLLAMA) – JEDNORAZOWO
+------------------------------------------
+1. Pobierz i zainstaluj bezpłatny program Ollama: https://ollama.com/download
+   (po instalacji działa w tle – ikona lamy obok zegara).
+2. W aplikacji: Ustawienia → Silnik AI → „Sprawdź połączenie” →
+   „Pobierz model” (jednorazowo kilka GB).
+3. Kliknij „Test szybkości”, aby zobaczyć, ile potrwa analiza jednego CV.
+
+Który model wybrać:
+ - zwykły laptop (bez karty graficznej): gemma3:4b (domyślny) lub qwen3:4b.
+   Analiza jednego CV trwa wtedy zwykle 5–15 minut – działa w tle, możesz
+   wgrać kilka CV i wrócić później.
+ - komputer z kartą graficzną NVIDIA 8 GB+: qwen3:8b,
+   12 GB+ lub 32 GB RAM: gemma3:12b – szybciej i trafniej.
+
+Opcjonalnie (płatnie): Ustawienia → Silnik AI → Claude API. Wymaga klucza
+z console.anthropic.com; koszt od ok. 2 gr za CV (Claude Haiku). Koszty
+widać w Ustawieniach → Koszty AI. Koszty obciążają konto, do którego należy
+wpisany klucz – klucz jest zapisany tylko na tym komputerze.
+
+
+3. PRACA Z APLIKACJĄ
+--------------------
+ - Oferty → „+ Nowa oferta” → wgraj plik(i) Word z ofertami. Wymagania
+   zostaną odczytane automatycznie (można je poprawić).
+ - Wejdź w ofertę → przeciągnij pliki CV (PDF / Word). Każde CV jest
+   analizowane automatycznie; wynik: Dopasowanie % i Potencjał %, opis,
+   dowody z CV, pytania na rozmowę.
+ - Kandydaci → wyszukiwarka we wszystkich ofertach.
+
+Ocena AI ma charakter pomocniczy. Decyzję rekrutacyjną podejmuje człowiek.
+
+
+4. GDZIE SĄ DANE
+----------------
+ - dane\             – baza danych, pliki CV i ofert, ustawienia, konfiguracja
+                       (DANE OSOBOWE – chroń dostęp do tego folderu)
+ - dane\konfiguracja\ – opis firmy, mapa technologii, parametry oceny
+ - dane\prompty\      – instrukcje dla AI
+ - kopie-zapasowe\   – kopie tworzone przyciskiem w Ustawieniach
+ - program\          – pliki programu (bez danych)
+
+
+5. KOPIA ZAPASOWA
+-----------------
+Ustawienia → Kopia zapasowa → „Utwórz kopię zapasową”. Plik ZIP trafia do
+folderu „kopie-zapasowe”. Przechowuj kopie w bezpiecznym miejscu – zawierają
+dane osobowe. Instrukcja przywracania jest w pliku PRZYWRACANIE.txt w ZIP.
+
+
+6. AKTUALIZACJA
+---------------
+Zamknij aplikację, usuń folder „program” i wstaw w jego miejsce folder
+„program” z nowej wersji (oraz nowy Uruchom.cmd). Folder „dane” zostaw –
+oferty, CV i ustawienia zostaną zachowane.
+
+
+7. RODO
+-------
+ - Przy darmowym modelu lokalnym CV nie opuszczają komputera.
+ - Przy Claude API tekst CV jest wysyłany do Anthropic – przed użyciem
+   skonsultuj to z osobą odpowiedzialną za ochronę danych (IOD).
+ - Usuwanie danych kandydata: karta kandydata → „Usuń wszystkie dane”.
+ - Kandydaci → filtr „Do usunięcia” pokazuje osoby bez zgody na przyszłe
+   rekrutacje, których oferty są zakończone.
+
+
+8. ROZWIĄZYWANIE PROBLEMÓW
+--------------------------
+ - Przeglądarka się nie otworzyła: wpisz ręcznie http://localhost:3000
+ - „Nie można połączyć się z Ollamą”: uruchom Ollamę (menu Start → Ollama).
+ - Błędy aplikacji: plik dane\logi\aplikacja.log
+ - Zapomniane hasło: zamknij aplikację, w pliku dane\ustawienia.json usuń
+   linię zaczynającą się od "hasloHash" (pamiętaj o przecinkach w JSON)
+   i uruchom aplikację – ustawisz nowe hasło.

@@ -35,12 +35,12 @@ export const scoringConfigSchema = z.object({
 
 export type ScoringConfig = z.infer<typeof scoringConfigSchema>;
 
-export const SCORING_PATH = path.join(CONFIG_DIR, "scoring.json");
-export const TECH_MAP_PATH = path.join(CONFIG_DIR, "related-technologies.json");
-export const COMPANY_CONTEXT_PATH = path.join(CONFIG_DIR, "company-context.md");
+const SCORING_PATH = () => path.join(CONFIG_DIR(), "scoring.json");
+const TECH_MAP_PATH = () => path.join(CONFIG_DIR(), "related-technologies.json");
+const COMPANY_CONTEXT_PATH = () => path.join(CONFIG_DIR(), "company-context.md");
 
 export async function loadScoringConfig(): Promise<ScoringConfig> {
-  const raw = JSON.parse(await fs.readFile(SCORING_PATH, "utf8"));
+  const raw = JSON.parse(await fs.readFile(SCORING_PATH(), "utf8"));
   const parsed = scoringConfigSchema.safeParse(raw);
   if (!parsed.success) {
     throw new Error(`Niepoprawny plik config/scoring.json: ${z.prettifyError(parsed.error)}`);
@@ -64,13 +64,13 @@ export const techMapSchema = z.object({
 export type TechMap = z.infer<typeof techMapSchema>;
 
 export async function loadTechMap(): Promise<TechMap> {
-  const raw = JSON.parse(await fs.readFile(TECH_MAP_PATH, "utf8"));
+  const raw = JSON.parse(await fs.readFile(TECH_MAP_PATH(), "utf8"));
   return techMapSchema.parse(raw);
 }
 
 export async function saveTechMap(map: TechMap): Promise<void> {
   const valid = techMapSchema.parse(map);
-  await writeAtomic(TECH_MAP_PATH, JSON.stringify(valid, null, 2) + "\n");
+  await writeAtomic(TECH_MAP_PATH(), JSON.stringify(valid, null, 2) + "\n");
 }
 
 /** Mapa w zwięzłej formie tekstowej do promptu. */
@@ -83,11 +83,11 @@ export function techMapToPrompt(map: TechMap): string {
 // ---------- config/company-context.md ----------
 
 export async function loadCompanyContext(): Promise<string> {
-  return fs.readFile(COMPANY_CONTEXT_PATH, "utf8");
+  return fs.readFile(COMPANY_CONTEXT_PATH(), "utf8");
 }
 
 export async function saveCompanyContext(content: string): Promise<void> {
-  await writeAtomic(COMPANY_CONTEXT_PATH, content.replace(/\r\n/g, "\n"));
+  await writeAtomic(COMPANY_CONTEXT_PATH(), content.replace(/\r\n/g, "\n"));
 }
 
 async function writeAtomic(file: string, content: string) {

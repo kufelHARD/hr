@@ -45,5 +45,10 @@ export const env = {
   },
 };
 
-export const CONFIG_DIR = path.join(PROJECT_ROOT, "config");
-export const PROMPTS_DIR = path.join(PROJECT_ROOT, "prompts");
+/**
+ * Katalogi konfiguracji edytowanej przez użytkownika (opis firmy, mapa technologii, parametry oceny) i promptów.
+ * W wersji do pobrania wskazują na folder danych (CONFIG_DIR / PROMPTS_DIR ustawia program uruchamiający),
+ * żeby zmiany użytkownika przetrwały aktualizację aplikacji. Domyślnie: katalogi w projekcie.
+ */
+export const CONFIG_DIR = () => path.resolve(PROJECT_ROOT, str("CONFIG_DIR", "config"));
+export const PROMPTS_DIR = () => path.resolve(PROJECT_ROOT, str("PROMPTS_DIR", "prompts"));

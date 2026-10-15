@@ -1,4 +1,6 @@
-// Prosta ochrona hasłem (aplikacja wewnętrzna). Używa Web Crypto, więc działa w proxy i w Node.
+// Prosta ochrona hasłem (aplikacja wewnętrzna). Hasło: APP_PASSWORD z .env albo ustawione w aplikacji
+// przy pierwszym uruchomieniu (skrót scrypt w katalogu danych). Proxy Next.js działa w runtime Node.js.
+import { getAuthSecret, verifyStoredPassword } from "@/lib/app-settings";
 
 export const SESSION_COOKIE = "porownywarka_sesja";
 const SESSION_DAYS = 7;
@@ -12,13 +14,7 @@ function toHex(buf: ArrayBuffer): string {
 }
 
 async function secretKey(): Promise<CryptoKey> {
-  let secret = process.env.AUTH_SECRET?.trim();
-  if (!secret) {
-    // awaryjnie: sekret wyprowadzony z hasła (zmiana hasła unieważnia sesje)
-    const pw = process.env.APP_PASSWORD ?? "";
-    secret = toHex(await crypto.subtle.digest("SHA-256", encoder.encode(`porownywarka:${pw}`)));
-  }
-  return crypto.subtle.importKey("raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, [
+  return crypto.subtle.importKey("raw", encoder.encode(getAuthSecret()), { name: "HMAC", hash: "SHA-256" }, false, [
     "sign",
     "verify",
   ]);
@@ -52,7 +48,7 @@ export async function verifySessionToken(token: string | undefined): Promise<boo
 
 export async function checkPassword(candidate: string): Promise<boolean> {
   const expected = process.env.APP_PASSWORD ?? "";
-  if (!expected) return false;
+  if (!expected) return verifyStoredPassword(candidate);
   // porównanie skrótów – stały czas niezależnie od długości
   const [a, b] = await Promise.all([
     crypto.subtle.digest("SHA-256", encoder.encode(candidate)),

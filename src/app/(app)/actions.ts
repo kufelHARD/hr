@@ -154,3 +154,100 @@ export async function saveTechMapAction(groups: unknown): Promise<Result> {
   });
   return { ok: true, message: "Zapisano mapę technologii." };
 }
+
+// ---------- silnik AI ----------
+
+import {
+  CLAUDE_MODELS,
+  getAiSettings,
+  saveAiSettings,
+  type AiProvider,
+} from "@/lib/app-settings";
+import { modelInstalled, ollamaStatus, pullStatus, speedTest, startPull } from "@/lib/ai/ollama";
+
+const aiSettingsSchema = z.object({
+  provider: z.enum(["ollama", "claude"]),
+  ollamaUrl: z.string().trim().url("Nieprawidłowy adres Ollamy"),
+  ollamaModel: z.string().trim().min(1, "Podaj nazwę modelu"),
+  claudeModel: z.string().trim().min(1),
+  claudeEffort: z.enum(["low", "medium", "high", "xhigh", "max"]),
+  /** undefined = bez zmian, "" = usuń zapisany klucz */
+  claudeApiKey: z.string().optional(),
+});
+
+export async function saveAiSettingsAction(input: z.input<typeof aiSettingsSchema>): Promise<Result> {
+  const parsed = aiSettingsSchema.safeParse(input);
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Niepoprawne dane" };
+  const d = parsed.data;
+  if (d.claudeApiKey && !d.claudeApiKey.startsWith("sk-ant-")) return { error: "Klucz API Claude powinien zaczynać się od „sk-ant-”." };
+  saveAiSettings({
+    provider: d.provider as AiProvider,
+    ollama: { baseUrl: d.ollamaUrl, model: d.ollamaModel },
+    claude: { model: d.claudeModel, effort: d.claudeEffort, apiKey: d.claudeApiKey },
+  });
+  revalidatePath("/ustawienia");
+  const s = getAiSettings();
+  if (s.provider === "claude" && !s.claude.apiKey) {
+    return { ok: true, message: "Zapisano. Uwaga: wybrano Claude, ale nie ma klucza API – analizy nie zadziałają." };
+  }
+  return {
+    ok: true,
+    message: s.provider === "ollama" ? "Zapisano. Analizy wykonuje darmowy model lokalny." : "Zapisano. Analizy wykonuje Claude (płatne).",
+  };
+}
+
+export async function ollamaStatusAction(baseUrl: string, model: string) {
+  const st = await ollamaStatus(baseUrl.replace(/\/+$/, ""));
+  return { ...st, hasModel: modelInstalled(st.models, model), pull: pullStatus() };
+}
+
+export async function startPullAction(baseUrl: string, model: string): Promise<Result> {
+  startPull(baseUrl.replace(/\/+$/, ""), model.trim());
+  return { ok: true };
+}
+
+export async function pullStatusAction() {
+  return pullStatus();
+}
+
+export async function speedTestAction(baseUrl: string, model: string) {
+  try {
+    return { ok: true as const, ...(await speedTest(baseUrl.replace(/\/+$/, ""), model.trim())) };
+  } catch (e) {
+    return { ok: false as const, error: (e as Error).message };
+  }
+}
+
+/** Sprawdzenie klucza Claude bez kosztów (pobranie informacji o modelu). */
+export async function testClaudeAction(apiKey: string | undefined, model: string): Promise<Result> {
+  const key = apiKey?.trim() || getAiSettings().claude.apiKey;
+  if (!key) return { error: "Brak klucza API." };
+  try {
+    const { default: Anthropic } = await import("@anthropic-ai/sdk");
+    const client = new Anthropic({ apiKey: key, maxRetries: 1, timeout: 15000 });
+    const m = await client.models.retrieve(model);
+    return { ok: true, message: `Klucz działa – model dostępny: ${m.display_name ?? m.id}.` };
+  } catch (e) {
+    const status = (e as { status?: number }).status;
+    if (status === 401) return { error: "Nieprawidłowy klucz API." };
+    if (status === 404) return { error: `Model ${model} niedostępny dla tego klucza.` };
+    return { error: `Nie udało się połączyć z API Anthropic: ${(e as Error).message}` };
+  }
+}
+
+export async function claudeModelsList() {
+  return CLAUDE_MODELS;
+}
+
+// ---------- kopia zapasowa ----------
+
+export async function createBackupAction(): Promise<Result & { fileName?: string }> {
+  try {
+    const { createBackup } = await import("@/lib/services/backup");
+    const r = await createBackup();
+    const name = r.file.split(/[\\/]/).pop()!;
+    return { ok: true, fileName: name, message: `Utworzono ${name} (${(r.sizeBytes / 1024 / 1024).toFixed(1)} MB) w folderze ${r.file.slice(0, -name.length - 1)}` };
+  } catch (e) {
+    return { error: `Nie udało się utworzyć kopii: ${(e as Error).message}` };
+  }
+}

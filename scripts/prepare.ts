@@ -1,16 +1,14 @@
-// Przygotowanie katalogów danych przed startem aplikacji.
+// Przygotowanie katalogów danych i aktualizacja bazy (migracje) przed startem aplikacji.
 import "dotenv/config";
 import fs from "node:fs";
 import path from "node:path";
+import { migrate } from "../launcher/migrate.mjs";
 
-const dataDir = path.resolve(process.cwd(), process.env.DATA_DIR?.trim() || "./storage");
+const root = process.cwd();
+const dataDir = path.resolve(root, process.env.DATA_DIR?.trim() || "./storage");
 for (const dir of [dataDir, path.join(dataDir, "files", "offers"), path.join(dataDir, "files", "cv")]) {
   fs.mkdirSync(dir, { recursive: true });
 }
-
-if (!fs.existsSync(path.join(process.cwd(), ".env"))) {
-  console.warn("⚠ Brak pliku .env – skopiuj .env.example do .env i uzupełnij ANTHROPIC_API_KEY oraz APP_PASSWORD.");
-}
-if (!process.env.ANTHROPIC_API_KEY) {
-  console.warn("⚠ ANTHROPIC_API_KEY nie jest ustawiony – analiza AI nie zadziała.");
-}
+const dbFile = path.resolve(root, (process.env.DATABASE_URL?.trim() || "file:./storage/app.db").replace(/^file:/, ""));
+const applied: number = migrate(dbFile, path.join(root, "prisma", "migrations"), root);
+if (applied) console.log(`Zastosowano migracje bazy: ${applied}`);
