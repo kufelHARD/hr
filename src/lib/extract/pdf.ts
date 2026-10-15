@@ -24,7 +24,6 @@ export async function openPdf(data: Uint8Array) {
   const task = pdfjs.getDocument({
     data,
     disableFontFace: true,
-    isEvalSupported: false,
     useSystemFonts: false,
     standardFontDataUrl: path.join(dir, "standard_fonts") + path.sep,
     cMapUrl: path.join(dir, "cmaps") + path.sep,
