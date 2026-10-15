@@ -54,8 +54,10 @@ describe("ekstrakcja PDF", () => {
       expect(pos).toBeGreaterThan(-1);
       expect(pos < mainStart || pos > mainEnd).toBe(true);
     }
-    // akapit treści głównej jest ciągły – zdanie łamane między wierszami pozostaje razem
-    expect(t.replace(/\s+/g, " ")).toContain("obejmujący czterdzieści instancji SQL Server");
+    // akapit treści głównej jest ciągły – zawinięte wiersze są scalane w jeden
+    expect(t).toMatch(/Odpowiedzialność za klaster Always On obejmujący czterdzieści instancji SQL Server\./);
+    // pozycje paska bocznego zostają osobno
+    expect(t).toMatch(/^• PowerShell$/m);
   });
 
   it("w układzie „data | opis” zostawia datę przy opisie", async () => {

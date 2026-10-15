@@ -50,3 +50,16 @@ describe("weryfikacja cytatów z CV", () => {
     });
   });
 });
+
+import { firstSentence } from "@/lib/text";
+
+describe("pierwsze zdanie opisu", () => {
+  it("nie ucina na skrótach i inicjałach", () => {
+    expect(firstSentence("Senior DBA z ok. 9-letnim doświadczeniem, m.in. w HA. Mocne strony to X.")).toBe(
+      "Senior DBA z ok. 9-letnim doświadczeniem, m.in. w HA.",
+    );
+    expect(firstSentence("Inżynier od 2021 r. pracujący w AWS. Dalej.")).toBe("Inżynier od 2021 r. pracujący w AWS.");
+    expect(firstSentence("Absolwent PP (J. Kowalski promotor). Kolejne.")).toBe("Absolwent PP (J. Kowalski promotor).");
+    expect(firstSentence("Jedno zdanie bez kropki")).toBe("Jedno zdanie bez kropki");
+  });
+});

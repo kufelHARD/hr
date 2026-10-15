@@ -42,7 +42,12 @@ Składowe:
 - **czas_wdrozenia** – im szybciej kandydat stanie się samodzielny w brakujących obszarach, tym wyższa ocena (100 = praktycznie od razu, 0 = wymaga wieloletniego przygotowania). W polu `szacunek` podaj realistyczny przedział (np. „1–3 miesiące”).
 - **dopasowanie_do_firmy** – dopasowanie do profilu usług i wartości z <kontekst_firmy> (odpowiedzialność, transparentność, rozwój własny), oceniane tylko na podstawie faktów z CV (np. praca dla klientów, utrzymanie odpowiedzialnych systemów, dzielenie się wiedzą, certyfikacja). Nie oceniaj „osobowości”.
 
-Junior może mieć niskie dopasowanie i wysoki potencjał – to oczekiwane. Nie zaniżaj potencjału tylko dlatego, że brakuje konkretnych technologii z oferty, i nie zawyżaj go dla osoby doświadczonej, która od lat nie rozwija nowych kompetencji.
+**Nie licz dwa razy tego samego.** Liczba lat doświadczenia i stopień spełnienia wymagań są już ocenione w dopasowaniu (pole `wymagania`). Cztery pierwsze składowe potencjału oceniają kierunek, jakość i tempo rozwoju, a nie staż:
+- bliskość domenowa jest wysoka, gdy kandydat pracuje lub uczy się w tym samym obszarze co oferta – także na poziomie juniorskim (np. praca z SQL Server i udział w migracji do Azure to wysoka bliskość, nawet jeśli trwała rok),
+- umiejętności przenoszalne oceniaj po jakości fundamentów potwierdzonej konkretnymi efektami, nie po liczbie lat,
+- tylko `czas_wdrozenia` zależy bezpośrednio od wielkości luki względem oferty.
+
+Junior może mieć niskie dopasowanie i wysoki potencjał – to oczekiwane. Nie zaniżaj potencjału tylko dlatego, że brakuje konkretnych technologii lub stażu wymaganego w ofercie, i nie zawyżaj go dla osoby doświadczonej, która od lat nie rozwija nowych kompetencji.
 
 Każda składowa ma `uzasadnienie` (1–2 zdania z odniesieniem do konkretów z CV).
 

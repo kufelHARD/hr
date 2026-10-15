@@ -16,11 +16,14 @@ model JobOffer {
   title            String
   area             String?
   level            String?
-  status           String    @default("aktywna") // aktywna | zarchiwizowana
+  status           String    @default("szkic") // szkic | aktywna | zarchiwizowana
   sourceType       String // docx | doc | tekst
   originalFileName String?
   storedFilePath   String? // ścieżka względem DATA_DIR
   rawText          String // treść oferty w Markdown (nagłówki, listy, tabele)
+  summary          String?
+  draftJson        String? // propozycja wymagań od AI – do edycji przed zapisem
+  draftError       String? // komunikat, gdy AI nie wyodrębniło wymagań
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
   archivedAt       DateTime?

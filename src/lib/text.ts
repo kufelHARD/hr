@@ -41,7 +41,24 @@ export function quoteAppearsInText(quote: string, text: string): boolean {
   return hits / windows.length >= 0.8;
 }
 
+// Skróty, po których kropka nie kończy zdania
+const ABBREVIATIONS = new Set([
+  "ok", "np", "m.in", "tj", "tzn", "itd", "itp", "r", "min", "maks", "max", "ds", "ul", "godz", "nr", "tys", "mln",
+  "mld", "prof", "dr", "inż", "mgr", "wg", "ww", "zob", "por", "jw", "tzw", "pn", "ang", "pol", "wyd", "św", "lic",
+]);
+
+/** Pierwsze zdanie tekstu – z pominięciem kropek w skrótach („ok.”, „np.”) i liczbach („2.5”). */
 export function firstSentence(text: string): string {
-  const m = text.match(/^.*?[.!?](\s|$)/s);
-  return (m ? m[0] : text).trim();
+  const t = text.trim();
+  const re = /[.!?](?=\s+[\p{Lu}„"(]|\s*$)/gu;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(t))) {
+    if (t[m.index] === ".") {
+      const before = t.slice(0, m.index);
+      const word = (before.match(/(\S+)$/)?.[1] ?? "").toLowerCase().replace(/^[(„"]/, "");
+      if (ABBREVIATIONS.has(word) || /^\p{L}$/u.test(word)) continue; // skrót lub inicjał
+    }
+    return t.slice(0, m.index + 1);
+  }
+  return t;
 }

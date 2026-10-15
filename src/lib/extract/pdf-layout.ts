@@ -22,6 +22,8 @@ type Line = { boxes: TextBox[]; y0: number; y1: number; x0: number; x1: number; 
 
 const MIN_COLUMN_GAP_FACTOR = 1.2; // szerokość szczeliny między kolumnami względem mediany rozmiaru czcionki
 const MIN_COLUMN_GAP_PT = 9;
+/** Blok węższy niż to (w punktach PDF) traktujemy jak pasek boczny/listę – ostrożniejsze łączenie wierszy. */
+const WIDE_BLOCK_PT = 230;
 
 function median(values: number[]): number {
   if (values.length === 0) return 0;
@@ -198,14 +200,44 @@ export function layoutPage(boxes: TextBox[]): string {
   for (const block of blocks) {
     const out: string[] = [];
     let prev: Line | null = null;
+    let prevHeading = false;
     const lineHeights = block.lines.map((l) => l.y1 - l.y0);
     const typical = median(lineHeights) || medFont;
+    const blockX0 = Math.min(...block.lines.map((l) => l.x0));
+    const blockX1 = Math.max(...block.lines.map((l) => l.x1));
+    const blockWidth = blockX1 - blockX0;
     for (const line of block.lines) {
       const text = lineText(line).trim();
       if (!text) continue;
-      if (prev && line.y0 - prev.y1 > 0.9 * typical) out.push("");
+      const paragraphBreak = prev !== null && line.y0 - prev.y1 > 0.9 * typical;
+      if (paragraphBreak) out.push("");
       const isHeading = line.fontSize >= medFont * 1.25 && text.length < 80;
-      out.push(isHeading ? `## ${text}` : text);
+      // Scalanie zawiniętych wierszy akapitu. Wiersz jest kontynuacją poprzedniego, gdy nie zaczyna punktu listy
+      // ani nagłówka oraz: zaczyna się małą literą (np. „utrzymaniu…”), albo – w szerokim bloku tekstu – poprzedni
+      // wiersz sięga prawej krawędzi i nie kończy się znakiem kończącym zdanie. W wąskich blokach (pasek boczny CV)
+      // wymagamy małej litery, bo tam kolejne wiersze to zwykle osobne pozycje.
+      const canJoin =
+        prev !== null &&
+        !paragraphBreak &&
+        !isHeading &&
+        !prevHeading &&
+        out.length > 0 &&
+        out[out.length - 1] !== "" &&
+        Math.abs(line.fontSize - prev.fontSize) < 0.5 &&
+        !/^([•▪●◦‣∙·*–—-]|\d+[.)]\s)/.test(text);
+      const wideBlock = blockWidth >= WIDE_BLOCK_PT;
+      const startsLower = /^[\p{Ll}(]/u.test(text);
+      const prevFull = prev !== null && prev.x1 >= blockX1 - 0.15 * blockWidth;
+      const wrapped =
+        canJoin && (startsLower ? prevFull || wideBlock : wideBlock && prevFull && !/[.:;!?]$/.test(out[out.length - 1]));
+      if (wrapped) {
+        const last = out[out.length - 1];
+        // dzielenie wyrazu z łącznikiem na końcu wiersza: „on-” + „premises” → „on-premises”
+        out[out.length - 1] = /\p{L}-$/u.test(last) ? last + text : `${last} ${text}`;
+      } else {
+        out.push(isHeading ? `## ${text}` : text);
+      }
+      prevHeading = isHeading;
       prev = line;
     }
     if (out.length) parts.push(out.join("\n"));
