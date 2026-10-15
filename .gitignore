@@ -39,3 +39,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/src/generated/prisma
+!.env.example
+
+# DANE OSOBOWE – nigdy nie commitować
+/storage/
+/backups/
+*.db
+*.db-journal

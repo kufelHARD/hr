@@ -1,0 +1,148 @@
+// Schemat bazy porównywarki CV (SQLite).
+// Wszystkie dane osobowe (baza + pliki) leżą w katalogu DATA_DIR (domyślnie ./storage).
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+/// Oferta pracy
+model JobOffer {
+  id               String    @id @default(cuid())
+  title            String
+  area             String?
+  level            String?
+  status           String    @default("aktywna") // aktywna | zarchiwizowana
+  sourceType       String // docx | doc | tekst
+  originalFileName String?
+  storedFilePath   String? // ścieżka względem DATA_DIR
+  rawText          String // treść oferty w Markdown (nagłówki, listy, tabele)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  archivedAt       DateTime?
+
+  requirementVersions RequirementVersion[]
+  applications        Application[]
+}
+
+/// Niezmienna wersja listy wymagań oferty. Każda edycja wymagań tworzy nową wersję.
+model RequirementVersion {
+  id        String   @id @default(cuid())
+  offerId   String
+  offer     JobOffer @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  version   Int
+  note      String?
+  createdAt DateTime @default(now())
+
+  requirements Requirement[]
+  analyses     Analysis[]
+
+  @@unique([offerId, version])
+}
+
+model Requirement {
+  id        String             @id @default(cuid())
+  versionId String
+  version   RequirementVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  code      String // R1, R2, ... – identyfikator przekazywany do AI
+  position  Int
+  text      String
+  type      String // wymagane | mile_widziane
+  category  String // technologia | doswiadczenie | wyksztalcenie | jezyk | kompetencje_miekkie | certyfikaty
+  weight    Int // 1-3
+  inferred  Boolean            @default(false) // wywnioskowane z zakresu obowiązków
+  source    String? // fragment oferty, z którego pochodzi wymaganie
+
+  @@index([versionId])
+}
+
+/// Osoba kandydata – wspólna dla wielu ofert
+model Candidate {
+  id                 String    @id @default(cuid())
+  fullName           String?
+  fullNameNormalized String? // małe litery, bez polskich znaków – do wyszukiwania
+  consentFuture      Boolean   @default(false) // zgoda na udział w przyszłych rekrutacjach
+  consentAt          DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  documents    CvDocument[]
+  applications Application[]
+}
+
+/// Wgrany plik CV wraz z wyekstrahowanym tekstem
+model CvDocument {
+  id                 String    @id @default(cuid())
+  candidateId        String
+  candidate          Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  originalFileName   String
+  storedFilePath     String // ścieżka względem DATA_DIR
+  mimeType           String
+  sizeBytes          Int
+  sha256             String
+  extractedText      String?
+  textNormalized     String? // do wyszukiwania
+  extractionMethod   String? // tekst | ocr | nieudana
+  extractionWarnings String? // JSON: string[]
+  pageCount          Int?
+  createdAt          DateTime  @default(now())
+
+  applications Application[]
+
+  @@index([sha256])
+  @@index([candidateId])
+}
+
+/// Kandydat w konkretnej ofercie
+model Application {
+  id            String     @id @default(cuid())
+  candidateId   String
+  candidate     Candidate  @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  offerId       String
+  offer         JobOffer   @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  cvDocumentId  String
+  cvDocument    CvDocument @relation(fields: [cvDocumentId], references: [id], onDelete: Cascade)
+  status        String     @default("oczekuje") // oczekuje | ekstrakcja | analiza | gotowe | blad | nieczytelne
+  statusMessage String?
+  notes         String     @default("")
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  analyses Analysis[]
+
+  @@unique([candidateId, offerId])
+  @@index([offerId])
+  @@index([status])
+}
+
+/// Wynik analizy AI. Historia – nigdy nie nadpisywana.
+model Analysis {
+  id                     String             @id @default(cuid())
+  applicationId          String
+  application            Application        @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  requirementVersionId   String
+  requirementVersion     RequirementVersion @relation(fields: [requirementVersionId], references: [id], onDelete: Cascade)
+  model                  String
+  effort                 String?
+  promptHash             String
+  resultJson             String // pełny, zwalidowany JSON z AI
+  matchScore             Float? // liczone przez kod
+  potentialScore         Float // liczone przez kod
+  recommendation         String
+  summary                String
+  technologiesNormalized String  @default("") // do wyszukiwania
+  scoringSnapshot        String // kopia config/scoring.json użyta do wyliczenia
+  unverifiedEvidence     Int     @default(0)
+  injectionDetected      Boolean @default(false)
+  inputTokens            Int?
+  outputTokens           Int?
+  cacheReadTokens        Int?
+  durationMs             Int?
+  createdAt              DateTime @default(now())
+
+  @@index([applicationId, createdAt])
+}

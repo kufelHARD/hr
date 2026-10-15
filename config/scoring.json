@@ -1,0 +1,32 @@
+{
+  "_opis": "Parametry liczenia wyników. Zmiany działają od następnej analizy (zapisane analizy mają kopię parametrów, z którymi je policzono).",
+  "dopasowanie": {
+    "_opis": "wynik = suma(wartosc_statusu × waga_wymagania × mnoznik_typu) / suma(waga_wymagania × mnoznik_typu) × 100",
+    "wartosci_statusow": {
+      "pelne": 1.0,
+      "pokrewne": 0.6,
+      "czesciowe": 0.4,
+      "brak": 0
+    },
+    "mnozniki_typow": {
+      "wymagane": 2,
+      "mile_widziane": 1
+    }
+  },
+  "potencjal": {
+    "_opis": "Potencjał = średnia ważona ocen składowych (0-100). Wagi nie muszą sumować się do 1 – są normalizowane.",
+    "wagi_skladowych": {
+      "bliskosc_domenowa": 0.25,
+      "umiejetnosci_przenoszalne": 0.25,
+      "trajektoria_rozwoju": 0.2,
+      "czas_wdrozenia": 0.15,
+      "dopasowanie_do_firmy": 0.15
+    }
+  },
+  "retencja": {
+    "_opis": "Automatyczne usuwanie danych kandydatów. Domyślnie wyłączone. 'tylko_bez_zgody' = usuwa tylko osoby bez zgody na przyszłe rekrutacje. Liczone od ostatniego zgłoszenia kandydata.",
+    "wlaczona": false,
+    "dni": 365,
+    "tylko_bez_zgody": true
+  }
+}
