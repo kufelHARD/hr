@@ -41,7 +41,7 @@ export async function processApplication(applicationId: string): Promise<void> {
     }
     if (doc.extractionMethod === "nieudana" || !doc.extractedText) {
       const warnings: string[] = doc.extractionWarnings ? JSON.parse(doc.extractionWarnings) : [];
-      await setStatus(app.id, "nieczytelne", warnings[0] ?? "Nie udało się odczytać tekstu z pliku.");
+      await setStatus(app.id, "nieczytelne", warnings.slice(0, 2).join(" ") || "Nie udało się odczytać tekstu z pliku.");
       return;
     }
 

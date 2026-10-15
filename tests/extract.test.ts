@@ -35,7 +35,7 @@ describe("ekstrakcja DOCX", () => {
 describe("ekstrakcja PDF", () => {
   it("nie miesza kolumn w CV dwukolumnowym", async () => {
     const res = await extractDocument(await makeTwoColumnPdf(), "cv.pdf");
-    expect(res.method).toBe("tekst");
+    expect(res.method, res.warnings.join("; ")).toBe("tekst");
     const t = res.text;
     expect(t).toContain("Anna Testowa");
     // polskie znaki
@@ -80,7 +80,7 @@ describe("ekstrakcja PDF", () => {
       "Umiejętności: PowerShell, Linux, sieci komputerowe",
     ]);
     const res = await extractDocument(pdf, "skan.pdf");
-    expect(res.method).toBe("ocr");
+    expect(res.method, res.warnings.join("; ")).toBe("ocr");
     expect(res.text).toMatch(/Piotr Skanowany/);
     expect(res.text).toMatch(/SQL Server/);
     expect(res.text).toMatch(/Doświadczenie/);

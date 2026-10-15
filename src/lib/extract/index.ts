@@ -137,7 +137,7 @@ export async function extractDocument(buffer: Buffer, fileName: string): Promise
     return {
       text: "",
       method: "nieudana",
-      warnings: [],
+      warnings: [`Szczegóły techniczne: ${(e as Error).message}`],
       error: `Nie udało się odczytać pliku (${kind.toUpperCase()}). Plik może być uszkodzony lub zabezpieczony hasłem.`,
     };
   }

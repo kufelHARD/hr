@@ -12,6 +12,10 @@ export function packageDir(name: string): string {
   return path.join(process.cwd(), "node_modules", ...name.split("/"));
 }
 
+function toDirUrl(dir: string): string {
+  return `${dir.replace(/\\/g, "/")}/`;
+}
+
 function pdfjsDir(): string {
   return packageDir("pdfjs-dist");
 }
@@ -28,8 +32,9 @@ export async function openPdf(data: Uint8Array) {
     data,
     disableFontFace: true,
     useSystemFonts: false,
-    standardFontDataUrl: path.join(dir, "standard_fonts") + path.sep,
-    cMapUrl: path.join(dir, "cmaps") + path.sep,
+    // pdfjs wymaga ukośnika „/” na końcu – także na Windows (fs.readFile akceptuje „/” w ścieżkach)
+    standardFontDataUrl: toDirUrl(path.join(dir, "standard_fonts")),
+    cMapUrl: toDirUrl(path.join(dir, "cmaps")),
     cMapPacked: true,
     verbosity: 0,
   });
