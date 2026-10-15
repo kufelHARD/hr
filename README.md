@@ -42,7 +42,7 @@ Szczegółowa instrukcja dla użytkownika jest w paczce (`INSTRUKCJA.txt`, źró
 
 Struktura paczki: `program\` (aplikacja z wbudowanym Node.js), `dane\` (baza, pliki CV, ustawienia, konfiguracja – tworzony przy pierwszym uruchomieniu), `kopie-zapasowe\`. Aktualizacja = podmiana folderu `program\` – dane zostają.
 
-**Budowanie paczki:** `npm run package:windows` (działa na Windows, Linuksie i macOS) → `dist/Porownywarka-CV-windows-x64.zip`. Automat GitHub Actions (`.github/workflows/windows-release.yml`) buduje paczkę na Windows, uruchamia testy i test startu paczki, a po wypchnięciu tagu `v*` (np. `git tag v1.0.1 && git push origin v1.0.1`) publikuje ją jako Release.
+**Budowanie paczki:** `npm run package:windows` (działa na Windows, Linuksie i macOS) → `dist/Porownywarka-CV-windows-x64.zip`. Automat GitHub Actions (`.github/workflows/windows-release.yml`) buduje paczkę na Windows, uruchamia testy i test startu paczki, a po zmianie wersji w `package.json` (pole `version`, np. `1.0.1`) na gałęzi `main` publikuje ją jako Release `v1.0.1`. Można go też uruchomić ręcznie: zakładka Actions → „Wersja Windows” → Run workflow.
 
 ## Silnik AI, koszty i inne komputery
 
