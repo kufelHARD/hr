@@ -1,0 +1,137 @@
+{
+  "_opis": "Grupy technologii pokrewnych. Znajomość jednej technologii z grupy może zostać zaliczona jako 'pokrewne' dla innej z tej samej grupy. To wskazówka dla AI – może ona rozpoznawać też pokrewieństwa spoza listy. Edytowalne w aplikacji: Ustawienia.",
+  "grupy": [
+    {
+      "nazwa": "Chmura publiczna (IaaS/PaaS)",
+      "technologie": ["Microsoft Azure", "AWS", "Google Cloud (GCP)", "Oracle Cloud (OCI)"],
+      "uwagi": "Koncepcje (sieci wirtualne, IAM, compute, storage, usługi zarządzane) przenoszą się; nazwy usług i szczegóły różnią się."
+    },
+    {
+      "nazwa": "Relacyjne bazy danych",
+      "technologie": ["Microsoft SQL Server", "Oracle Database", "PostgreSQL", "MySQL", "MariaDB", "IBM Db2"],
+      "uwagi": "Wspólne fundamenty: modelowanie, indeksy, plany zapytań, transakcje, backup/restore. Administracja różni się narzędziami."
+    },
+    {
+      "nazwa": "Zarządzane bazy danych w chmurze",
+      "technologie": ["Azure SQL Database", "Azure SQL Managed Instance", "Amazon RDS", "Amazon Aurora", "Google Cloud SQL", "Oracle Autonomous Database"]
+    },
+    {
+      "nazwa": "Dialekty SQL / języki proceduralne",
+      "technologie": ["T-SQL", "PL/SQL", "PL/pgSQL", "MySQL stored procedures"]
+    },
+    {
+      "nazwa": "Wysoka dostępność i DR – SQL Server",
+      "technologie": ["Always On Availability Groups", "Failover Cluster Instances (FCI)", "Log Shipping", "Database Mirroring", "Replikacja SQL Server"]
+    },
+    {
+      "nazwa": "Wysoka dostępność i DR – Oracle",
+      "technologie": ["Oracle Data Guard", "Active Data Guard", "Oracle RAC", "Oracle GoldenGate"]
+    },
+    {
+      "nazwa": "Wysoka dostępność i DR – ogólnie",
+      "technologie": ["Always On AG", "Oracle Data Guard", "PostgreSQL streaming replication", "Patroni", "Azure Site Recovery", "AWS Elastic Disaster Recovery", "Klastry Windows Server Failover Clustering", "Pacemaker/Corosync"],
+      "uwagi": "Doświadczenie z HA/DR w jednym silniku daje dobre podstawy do innego."
+    },
+    {
+      "nazwa": "Wydajność i diagnostyka baz danych",
+      "technologie": ["Query Store", "Extended Events", "SQL Server Profiler", "DMV", "Oracle AWR/ASH", "Oracle SQL Tuning Advisor", "pg_stat_statements", "SolarWinds DPA", "Redgate SQL Monitor", "Quest Foglight"]
+    },
+    {
+      "nazwa": "Kopie zapasowe",
+      "technologie": ["Oracle RMAN", "SQL Server native backup", "Ola Hallengren Maintenance Solution", "Veeam", "Commvault", "Azure Backup", "AWS Backup"]
+    },
+    {
+      "nazwa": "Business Intelligence / raportowanie",
+      "technologie": ["Power BI", "Tableau", "Qlik Sense", "QlikView", "Looker", "SSRS", "Oracle Analytics"]
+    },
+    {
+      "nazwa": "Modele analityczne / OLAP",
+      "technologie": ["SSAS Tabular", "SSAS Multidimensional", "Power BI semantic models", "Azure Analysis Services", "DAX", "MDX"]
+    },
+    {
+      "nazwa": "ETL / integracja danych",
+      "technologie": ["SSIS", "Azure Data Factory", "Informatica PowerCenter", "Talend", "AWS Glue", "Apache Airflow", "Oracle Data Integrator", "Fivetran", "dbt"]
+    },
+    {
+      "nazwa": "Hurtownie i platformy danych",
+      "technologie": ["Azure Synapse Analytics", "Microsoft Fabric", "Snowflake", "Databricks", "Google BigQuery", "Amazon Redshift", "Teradata"]
+    },
+    {
+      "nazwa": "Przetwarzanie big data",
+      "technologie": ["Apache Spark", "Databricks", "Hadoop", "Azure HDInsight", "Amazon EMR", "Google Dataproc"]
+    },
+    {
+      "nazwa": "Infrastructure as Code",
+      "technologie": ["Terraform", "Bicep", "ARM templates", "AWS CloudFormation", "Pulumi", "AWS CDK"]
+    },
+    {
+      "nazwa": "Zarządzanie konfiguracją",
+      "technologie": ["Ansible", "PowerShell DSC", "Chef", "Puppet", "SaltStack"]
+    },
+    {
+      "nazwa": "Skrypty i automatyzacja",
+      "technologie": ["PowerShell", "Bash", "Python", "dbatools"],
+      "uwagi": "Biegłość w jednym języku skryptowym ułatwia naukę innego."
+    },
+    {
+      "nazwa": "CI/CD",
+      "technologie": ["Azure DevOps Pipelines", "GitHub Actions", "GitLab CI", "Jenkins", "TeamCity"]
+    },
+    {
+      "nazwa": "Konteneryzacja i orkiestracja",
+      "technologie": ["Docker", "Kubernetes", "Azure Kubernetes Service (AKS)", "Amazon EKS", "Google GKE", "OpenShift"]
+    },
+    {
+      "nazwa": "Wirtualizacja",
+      "technologie": ["VMware vSphere", "Microsoft Hyper-V", "Proxmox", "KVM", "Nutanix AHV"]
+    },
+    {
+      "nazwa": "Systemy operacyjne serwerowe",
+      "technologie": ["Windows Server", "Red Hat Enterprise Linux", "Oracle Linux", "Ubuntu Server", "SUSE Linux"]
+    },
+    {
+      "nazwa": "Tożsamość i dostęp",
+      "technologie": ["Active Directory", "Microsoft Entra ID (Azure AD)", "AWS IAM", "Okta", "Keycloak"]
+    },
+    {
+      "nazwa": "Monitoring i observability",
+      "technologie": ["Azure Monitor", "Log Analytics", "Amazon CloudWatch", "Google Cloud Monitoring", "Prometheus", "Grafana", "Zabbix", "Datadog", "Nagios", "SCOM"]
+    },
+    {
+      "nazwa": "Integracja systemów i komunikacja",
+      "technologie": ["Microsoft BizTalk", "Azure Logic Apps", "Azure Service Bus", "Azure Event Hubs", "MuleSoft", "Apache Kafka", "RabbitMQ", "IBM MQ", "Amazon SQS/SNS"]
+    },
+    {
+      "nazwa": "Bazy NoSQL",
+      "technologie": ["MongoDB", "Azure Cosmos DB", "Amazon DynamoDB", "Apache Cassandra", "Redis", "Elasticsearch"]
+    },
+    {
+      "nazwa": "Backend aplikacji internetowych",
+      "technologie": ["C# / .NET", "Java / Spring", "Node.js", "Python (Django/FastAPI/Flask)", "PHP (Laravel/Symfony)", "Go"]
+    },
+    {
+      "nazwa": "Frontend",
+      "technologie": ["React", "Angular", "Vue.js", "Svelte"]
+    },
+    {
+      "nazwa": "Usługi AI w chmurze",
+      "technologie": ["Azure OpenAI / Azure AI Foundry", "Amazon Bedrock", "Google Vertex AI", "Anthropic Claude API", "OpenAI API"]
+    },
+    {
+      "nazwa": "Uczenie maszynowe",
+      "technologie": ["scikit-learn", "PyTorch", "TensorFlow", "Azure Machine Learning", "Amazon SageMaker", "MLflow"]
+    },
+    {
+      "nazwa": "Certyfikaty chmurowe – administracja",
+      "technologie": ["AZ-104 Azure Administrator", "AWS Certified SysOps Administrator", "Google Associate Cloud Engineer"]
+    },
+    {
+      "nazwa": "Certyfikaty chmurowe – architektura",
+      "technologie": ["AZ-305 Azure Solutions Architect", "AWS Certified Solutions Architect", "Google Professional Cloud Architect"]
+    },
+    {
+      "nazwa": "Certyfikaty baz danych",
+      "technologie": ["DP-300 Azure Database Administrator", "Oracle Certified Professional (OCP)", "AWS Certified Database – Specialty", "Google Professional Cloud Database Engineer", "MCSA/MCSE SQL Server (wycofane)"]
+    }
+  ]
+}
