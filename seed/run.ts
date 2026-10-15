@@ -6,9 +6,9 @@ import fs from "node:fs";
 import path from "node:path";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
-import { createOfferDraft, currentRequirementVersion, deleteOffer, saveRequirements } from "@/lib/services/offers";
+import { createOfferDraft, currentRequirementVersion, deleteOffer } from "@/lib/services/offers";
 import { addCvToOffer } from "@/lib/services/candidates";
-import { offerExtractionSchema, RECOMMENDATION_LABELS, type StoredAnalysis } from "@/lib/ai/schemas";
+import { RECOMMENDATION_LABELS, type StoredAnalysis } from "@/lib/ai/schemas";
 import { POTENTIAL_COMPONENTS, POTENTIAL_LABELS, STATUS_LABELS, TYPE_LABELS, type RequirementType } from "@/lib/scoring";
 import { terminateOcr } from "@/lib/extract/ocr";
 
@@ -48,27 +48,14 @@ async function main() {
   console.log(`Model: ${env.model}, effort: ${env.effort}`);
   console.log("1/3 Oferta: ekstrakcja tekstu i wymagań (AI)…");
   const offerFile = "oferta-dba-sql-server-azure.docx";
-  const draft = await createOfferDraft({
+  const created = await createOfferDraft({
     title: TITLE,
     file: { name: offerFile, buffer: fs.readFileSync(path.join(FILES, offerFile)) },
+    autoActivate: true,
   });
-  if (!draft.ok) throw new Error(draft.error);
-  const offer = await db.jobOffer.findUniqueOrThrow({ where: { id: draft.offerId } });
-  if (!offer.draftJson) throw new Error(`AI nie wyodrębniło wymagań: ${offer.draftError}`);
-  const extracted = offerExtractionSchema.parse(JSON.parse(offer.draftJson));
-  const saved = await saveRequirements(
-    offer.id,
-    { title: TITLE, area: extracted.obszar, level: extracted.poziom },
-    extracted.wymagania.map((w) => ({
-      text: w.tresc,
-      type: w.typ,
-      category: w.kategoria,
-      weight: w.waga,
-      inferred: w.wywnioskowane,
-      source: w.zrodlo,
-    })),
-  );
-  if (!saved.ok) throw new Error(saved.error);
+  if (!created.ok) throw new Error(created.error);
+  if (!created.activated) throw new Error(`AI nie wyodrębniło wymagań: ${created.aiError ?? "nieznany błąd"}`);
+  const offer = await db.jobOffer.findUniqueOrThrow({ where: { id: created.offerId } });
 
   console.log("2/3 Wgrywanie CV i analiza (to potrwa kilka minut)…");
   const appIds: string[] = [];

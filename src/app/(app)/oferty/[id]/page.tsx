@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { currentRequirementVersion } from "@/lib/services/offers";
+import { AUTO_VERSION_NOTE, currentRequirementVersion } from "@/lib/services/offers";
 import { candidateDisplayName } from "@/lib/services/candidates";
 import { CATEGORY_LABELS, RECOMMENDATION_LABELS, type RequirementCategory, type Recommendation } from "@/lib/ai/schemas";
 import { TYPE_LABELS, type RequirementType } from "@/lib/scoring";
@@ -88,7 +88,12 @@ export default async function OfferPage({ params, searchParams }: PageProps<"/of
               {offer.area && <span>{offer.area}</span>}
               {offer.level && <span>· {offer.level}</span>}
               <span>· dodana {formatDate(offer.createdAt)}</span>
-              {version && <span>· wymagania w wersji {version.version}</span>}
+              {version && (
+                <span>
+                  · wymagania w wersji {version.version}
+                  {version.note === AUTO_VERSION_NOTE && " (odczytane automatycznie)"}
+                </span>
+              )}
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -113,6 +118,15 @@ export default async function OfferPage({ params, searchParams }: PageProps<"/of
       </div>
 
       {readOnly && <Alert>Oferta jest zarchiwizowana – kandydaci i wyniki są dostępni tylko do odczytu.</Alert>}
+      {!readOnly && version?.note === AUTO_VERSION_NOTE && (
+        <Alert tone="blue">
+          Wymagania zostały odczytane automatycznie z pliku oferty przez AI.{" "}
+          <Link href={`/oferty/${offer.id}/wymagania`} className="font-medium underline">
+            Sprawdź i popraw wymagania
+          </Link>{" "}
+          (typ, waga, pozycje oznaczone jako „wywnioskowane”) – zapis utworzy nową wersję.
+        </Alert>
+      )}
 
       <details className="group rounded-xl border border-slate-200 bg-white shadow-sm">
         <summary className="cursor-pointer list-none px-5 py-3 font-semibold text-slate-800">

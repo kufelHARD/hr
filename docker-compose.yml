@@ -1,0 +1,20 @@
+# Uruchomienie: docker compose up -d   (aplikacja na http://localhost:3000)
+services:
+  porownywarka:
+    build: .
+    image: porownywarka-cv
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file: .env
+    environment:
+      DATA_DIR: /app/storage
+      DATABASE_URL: file:/app/storage/app.db
+    volumes:
+      # dane osobowe kandydatów (baza + pliki) – trwałe, poza kontenerem
+      - ./storage:/app/storage
+      # edytowalna konfiguracja i prompty
+      - ./config:/app/config
+      - ./prompts:/app/prompts
+      # kopie zapasowe (npm run backup w kontenerze)
+      - ./backups:/app/backups

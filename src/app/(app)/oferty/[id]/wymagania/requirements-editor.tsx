@@ -103,72 +103,74 @@ export function RequirementsEditor({
 
       <div className="space-y-2">
         {rows.map((r, i) => (
-          <div key={r.key} className={cx("rounded-lg border bg-white p-3", r.inferred ? "border-amber-200" : "border-slate-200")}>
-            <div className="flex flex-wrap items-start gap-3">
-              <span className="mt-2 w-8 text-sm font-medium text-slate-400">R{i + 1}</span>
+          <div key={r.key} className={cx("flex gap-3 rounded-lg border bg-white p-3", r.inferred ? "border-amber-200" : "border-slate-200")}>
+            <span className="mt-2 w-8 shrink-0 text-sm font-medium text-slate-400">R{i + 1}</span>
+            <div className="min-w-0 flex-1 space-y-2">
               <textarea
                 value={r.text}
                 onChange={(e) => update(r.key, { text: e.target.value })}
-                rows={1}
-                className="min-h-[38px] min-w-[240px] flex-1 resize-y rounded-md border border-slate-300 px-3 py-2 text-sm"
+                rows={Math.min(4, Math.max(1, Math.ceil(r.text.length / 110)))}
+                aria-label={`Treść wymagania R${i + 1}`}
+                className="block w-full resize-y rounded-md border border-slate-300 px-3 py-2 text-sm"
               />
-              <select
-                value={r.type}
-                onChange={(e) => update(r.key, { type: e.target.value as EditableRequirement["type"] })}
-                className={cx(
-                  "rounded-md border px-2 py-2 text-sm",
-                  r.type === "wymagane" ? "border-brand-500 bg-brand-50 text-brand-900" : "border-slate-300",
-                )}
-              >
-                <option value="wymagane">Wymagane</option>
-                <option value="mile_widziane">Mile widziane</option>
-              </select>
-              <select
-                value={r.category}
-                onChange={(e) => update(r.key, { category: e.target.value as RequirementCategory })}
-                className="rounded-md border border-slate-300 px-2 py-2 text-sm"
-              >
-                {REQUIREMENT_CATEGORIES.map((c) => (
-                  <option key={c} value={c}>
-                    {CATEGORY_LABELS[c]}
-                  </option>
-                ))}
-              </select>
-              <div className="flex overflow-hidden rounded-md border border-slate-300" role="group" aria-label="Waga">
-                {[1, 2, 3].map((w) => (
-                  <button
-                    key={w}
-                    type="button"
-                    title={`Waga ${w}`}
-                    onClick={() => update(r.key, { weight: w })}
-                    className={cx("px-3 py-2 text-sm", r.weight === w ? "bg-brand-600 text-white" : "bg-white text-slate-600 hover:bg-slate-50")}
-                  >
-                    {w}
-                  </button>
-                ))}
-              </div>
-              <div className="flex gap-1">
-                <Button type="button" variant="ghost" className="px-2" onClick={() => move(i, -1)} disabled={i === 0} title="W górę">
-                  ↑
-                </Button>
-                <Button type="button" variant="ghost" className="px-2" onClick={() => move(i, 1)} disabled={i === rows.length - 1} title="W dół">
-                  ↓
-                </Button>
-                <Button type="button" variant="ghost" className="px-2 text-red-600" onClick={() => setRows((rs) => rs.filter((x) => x.key !== r.key))} title="Usuń">
-                  ✕
-                </Button>
-              </div>
-            </div>
-            {(r.inferred || r.source) && (
-              <div className="mt-2 flex flex-wrap items-center gap-2 pl-11 text-xs text-slate-500">
+              <div className="flex flex-wrap items-center gap-2">
+                <select
+                  value={r.type}
+                  onChange={(e) => update(r.key, { type: e.target.value as EditableRequirement["type"] })}
+                  aria-label="Typ"
+                  className={cx(
+                    "rounded-md border px-2 py-1.5 text-sm",
+                    r.type === "wymagane" ? "border-brand-500 bg-brand-50 text-brand-900" : "border-slate-300",
+                  )}
+                >
+                  <option value="wymagane">Wymagane</option>
+                  <option value="mile_widziane">Mile widziane</option>
+                </select>
+                <select
+                  value={r.category}
+                  onChange={(e) => update(r.key, { category: e.target.value as RequirementCategory })}
+                  aria-label="Kategoria"
+                  className="rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+                >
+                  {REQUIREMENT_CATEGORIES.map((c) => (
+                    <option key={c} value={c}>
+                      {CATEGORY_LABELS[c]}
+                    </option>
+                  ))}
+                </select>
+                <span className="ml-1 text-xs text-slate-500">Waga</span>
+                <div className="flex overflow-hidden rounded-md border border-slate-300" role="group" aria-label="Waga">
+                  {[1, 2, 3].map((w) => (
+                    <button
+                      key={w}
+                      type="button"
+                      title={`Waga ${w}`}
+                      onClick={() => update(r.key, { weight: w })}
+                      className={cx("px-3 py-1.5 text-sm", r.weight === w ? "bg-brand-600 text-white" : "bg-white text-slate-600 hover:bg-slate-50")}
+                    >
+                      {w}
+                    </button>
+                  ))}
+                </div>
                 {r.inferred && (
                   <Badge tone="amber" title="AI wywnioskowało to wymaganie z zakresu obowiązków – zweryfikuj">
                     wywnioskowane
                   </Badge>
                 )}
-                {r.source && <span className="italic">Źródło: „{r.source}”</span>}
+                <div className="ml-auto flex gap-1">
+                  <Button type="button" variant="ghost" className="px-2 py-1" onClick={() => move(i, -1)} disabled={i === 0} title="W górę">
+                    ↑
+                  </Button>
+                  <Button type="button" variant="ghost" className="px-2 py-1" onClick={() => move(i, 1)} disabled={i === rows.length - 1} title="W dół">
+                    ↓
+                  </Button>
+                  <Button type="button" variant="ghost" className="px-2 py-1 text-red-600" onClick={() => setRows((rs) => rs.filter((x) => x.key !== r.key))} title="Usuń">
+                    ✕
+                  </Button>
+                </div>
               </div>
-            )}
+              {r.source && <div className="text-xs italic text-slate-500">Źródło: „{r.source}”</div>}
+            </div>
           </div>
         ))}
       </div>

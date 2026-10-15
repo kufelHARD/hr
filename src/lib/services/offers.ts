@@ -21,7 +21,12 @@ export const requirementInputSchema = z.object({
 });
 export type RequirementInput = z.infer<typeof requirementInputSchema>;
 
-export type CreateDraftResult = { ok: true; offerId: string } | { ok: false; error: string };
+export type CreateDraftResult =
+  | { ok: true; offerId: string; activated: boolean; requirementCount: number; aiError?: string }
+  | { ok: false; error: string };
+
+/** Notatka wersji wymagań zapisanej automatycznie (bez przeglądu przez rekrutera). */
+export const AUTO_VERSION_NOTE = "Wymagania wyodrębnione automatycznie z pliku oferty (AI) – niezweryfikowane przez rekrutera.";
 
 /**
  * Nowa oferta jako szkic: ekstrakcja tekstu z pliku (lub wklejona treść) + propozycja wymagań od AI.
@@ -31,6 +36,8 @@ export async function createOfferDraft(input: {
   title?: string;
   file?: { name: string; buffer: Buffer };
   text?: string;
+  /** true = od razu zapisz wymagania od AI jako wersję 1 i aktywuj ofertę (bez kroku przeglądu) */
+  autoActivate?: boolean;
 }): Promise<CreateDraftResult> {
   let rawText = input.text?.trim() ?? "";
   let sourceType = "tekst";
@@ -83,7 +90,30 @@ export async function createOfferDraft(input: {
       draftError,
     },
   });
-  return { ok: true, offerId: offer.id };
+
+  if (input.autoActivate && draft) {
+    const saved = await saveRequirements(
+      offer.id,
+      { title, area: draft.obszar, level: draft.poziom },
+      draft.wymagania.map((w) => ({
+        text: w.tresc,
+        type: w.typ,
+        category: w.kategoria,
+        weight: w.waga,
+        inferred: w.wywnioskowane,
+        source: w.zrodlo,
+      })),
+      AUTO_VERSION_NOTE,
+    );
+    if (saved.ok) return { ok: true, offerId: offer.id, activated: true, requirementCount: draft.wymagania.length };
+  }
+  return {
+    ok: true,
+    offerId: offer.id,
+    activated: false,
+    requirementCount: draft?.wymagania.length ?? 0,
+    aiError: draftError ?? undefined,
+  };
 }
 
 /** Ponowne wyodrębnienie wymagań przez AI (np. po błędzie lub dla nowej wersji promptu). */

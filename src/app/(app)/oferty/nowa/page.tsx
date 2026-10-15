@@ -9,9 +9,9 @@ export default function NewOfferPage() {
         <Link href="/" className="text-sm text-slate-500 hover:text-slate-800">
           ← Oferty
         </Link>
-        <h1 className="mt-1 text-2xl font-semibold">Nowa oferta pracy</h1>
+        <h1 className="mt-1 text-2xl font-semibold">Nowe oferty pracy</h1>
         <p className="mt-1 text-sm text-slate-500">
-          Krok 1 z 2: wgraj ofertę. W kolejnym kroku przejrzysz i poprawisz wymagania wyodrębnione przez AI.
+          Wgraj plik(i) ofert – AI automatycznie odczyta z nich stanowisko i wymagane kompetencje.
         </p>
       </div>
       <Card>
