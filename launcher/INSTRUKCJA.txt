@@ -2,9 +2,10 @@ PORÓWNYWARKA CV – summ-it S.A.
 Instrukcja (Windows 10 / 11, 64-bit)
 =====================================
 
-Aplikacja jest bezpłatna. Domyślnie analizy CV wykonuje darmowy model AI
-działający na Twoim komputerze (program Ollama) – bez opłat i bez wysyłania
-CV do internetu.
+Aplikacja jest bezpłatna. Każde wgrane CV od razu (w kilka sekund) dostaje
+szybkie dopasowanie do oferty – bez AI. Pełną analizę AI uruchamiasz tylko
+dla wybranych kandydatów; domyślnie wykonuje ją darmowy model działający na
+Twoim komputerze (program Ollama) – bez opłat i bez wysyłania CV do internetu.
 
 
 1. INSTALACJA
@@ -24,8 +25,11 @@ aplikacji. Aby wygodnie uruchamiać: prawy przycisk na „Uruchom.cmd” →
 „Wyślij do” → „Pulpit (utwórz skrót)”.
 
 
-2. DARMOWY MODEL AI (OLLAMA) – JEDNORAZOWO
-------------------------------------------
+2. DARMOWY MODEL AI (OLLAMA) – JEDNORAZOWO, OPCJONALNIE
+--------------------------------------------------------
+Bez Ollamy aplikacja też działa (szybkie dopasowanie). Ollama jest potrzebna
+tylko do przycisku „Analiza AI”.
+
 1. Pobierz i zainstaluj bezpłatny program Ollama: https://ollama.com/download
    (po instalacji działa w tle – ikona lamy obok zegara).
 2. W aplikacji: Ustawienia → Silnik AI → „Sprawdź połączenie” →
@@ -34,8 +38,8 @@ aplikacji. Aby wygodnie uruchamiać: prawy przycisk na „Uruchom.cmd” →
 
 Który model wybrać:
  - zwykły laptop (bez karty graficznej): gemma3:4b (domyślny) lub qwen3:4b.
-   Analiza jednego CV trwa wtedy zwykle 5–15 minut – działa w tle, możesz
-   wgrać kilka CV i wrócić później.
+   Analiza AI jednego CV trwa wtedy zwykle 5–15 minut – działa w tle,
+   możesz w tym czasie pracować dalej.
  - komputer z kartą graficzną NVIDIA 8 GB+: qwen3:8b,
    12 GB+ lub 32 GB RAM: gemma3:12b – szybciej i trafniej.
 
@@ -49,10 +53,20 @@ wpisany klucz – klucz jest zapisany tylko na tym komputerze.
 --------------------
  - Oferty → „+ Nowa oferta” → wgraj plik(i) Word z ofertami. Wymagania
    zostaną odczytane automatycznie (można je poprawić).
- - Wejdź w ofertę → przeciągnij pliki CV (PDF / Word). Każde CV jest
-   analizowane automatycznie; wynik: Dopasowanie % i Potencjał %, opis,
-   dowody z CV, pytania na rozmowę.
+ - Wejdź w ofertę → przeciągnij pliki CV (PDF / Word). Po kilku sekundach
+   każde CV ma wynik szybkiego dopasowania (bez AI) i tabelę: które
+   wymagania znaleziono w CV, a których brakuje.
+ - Przesuwaj kandydatów między etapami (Nowe → Selekcja → Rozmowa →
+   Oferta → Zatrudniony / Odrzucony).
+ - Dla interesujących kandydatów kliknij „✨ Analiza AI” (karta kandydata)
+   albo „Analiza AI dla tego etapu” – wynik: Dopasowanie % i Potencjał %,
+   opis, dowody z CV, pytania na rozmowę.
  - Kandydaci → wyszukiwarka we wszystkich ofertach.
+
+Link „Aplikuj” do ogłoszeń (pracuj.pl, justjoin.it…), przez który CV
+trafiają do aplikacji automatycznie, działa tylko w wersji zainstalowanej
+na serwerze firmy z własną domeną (opis w README w repozytorium). Ta wersja
+działa tylko na tym komputerze i nie jest dostępna z internetu.
 
 Ocena AI ma charakter pomocniczy. Decyzję rekrutacyjną podejmuje człowiek.
 

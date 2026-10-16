@@ -1,5 +1,6 @@
 // Przykładowe dane: 1 oferta (.docx) + 3 fikcyjne CV → pełna analiza AI → raport w konsoli i w storage/raport-seed.md.
 // Uruchomienie: npm run seed            (gdy przykład już istnieje – kończy z komunikatem)
+//               npm run seed -- --ai     (dodatkowo pogłębiona analiza AI każdego CV)
 //               npm run seed -- --reset (usuwa poprzedni przykład i tworzy go od nowa)
 import "dotenv/config";
 import fs from "node:fs";
@@ -7,7 +8,8 @@ import path from "node:path";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import { createOfferDraft, currentRequirementVersion, deleteOffer } from "@/lib/services/offers";
-import { addCvToOffer } from "@/lib/services/candidates";
+import { addCvToOffer, requestAiAnalysis } from "@/lib/services/candidates";
+import type { QuickMatchResult } from "@/lib/matching";
 import { RECOMMENDATION_LABELS, type StoredAnalysis } from "@/lib/ai/schemas";
 import { POTENTIAL_COMPONENTS, POTENTIAL_LABELS, STATUS_LABELS, TYPE_LABELS, type RequirementType } from "@/lib/scoring";
 import { terminateOcr } from "@/lib/extract/ocr";
@@ -57,7 +59,8 @@ async function main() {
   if (!created.activated) throw new Error(`AI nie wyodrębniło wymagań: ${created.aiError ?? "nieznany błąd"}`);
   const offer = await db.jobOffer.findUniqueOrThrow({ where: { id: created.offerId } });
 
-  console.log("2/3 Wgrywanie CV i analiza (to potrwa kilka minut)…");
+  const withAi = process.argv.includes("--ai");
+  console.log(`2/3 Wgrywanie CV, szybkie dopasowanie${withAi ? " i analiza AI (to potrwa kilka minut)" : ""}…`);
   const appIds: string[] = [];
   for (const cv of CVS) {
     const res = await addCvToOffer(offer.id, cv.file, fs.readFileSync(path.join(FILES, cv.file)));
@@ -66,10 +69,17 @@ async function main() {
   }
   const started = Date.now();
   for (;;) {
-    const apps = await db.application.findMany({ where: { id: { in: appIds } }, select: { status: true } });
-    const pending = apps.filter((a) => ["oczekuje", "ekstrakcja", "analiza"].includes(a.status)).length;
+    const apps = await db.application.findMany({ where: { id: { in: appIds } }, select: { status: true, aiStatus: true } });
+    const pending = apps.filter((a) => ["oczekuje", "ekstrakcja"].includes(a.status) || ["oczekuje", "analiza"].includes(a.aiStatus ?? "")).length;
     process.stdout.write(`\r   gotowe: ${apps.length - pending}/${apps.length} (${Math.round((Date.now() - started) / 1000)} s)   `);
-    if (pending === 0) break;
+    if (pending === 0) {
+      // po szybkim dopasowaniu – opcjonalnie analiza AI dla wszystkich
+      if (withAi && apps.every((a) => a.aiStatus === null)) {
+        for (const id of appIds) await requestAiAnalysis(id);
+        continue;
+      }
+      break;
+    }
     await new Promise((r) => setTimeout(r, 3000));
   }
   console.log("\n3/3 Raport\n");
@@ -88,12 +98,26 @@ async function main() {
   for (let i = 0; i < appIds.length; i++) {
     const app = await db.application.findUniqueOrThrow({
       where: { id: appIds[i] },
-      include: { candidate: true, analyses: { orderBy: { createdAt: "desc" }, take: 1 }, cvDocument: true },
+      include: {
+        candidate: true,
+        analyses: { orderBy: { createdAt: "desc" }, take: 1 },
+        quickMatches: { orderBy: { createdAt: "desc" }, take: 1 },
+        cvDocument: true,
+      },
     });
     log(`\n## ${i + 1}. ${app.candidate.fullName ?? app.cvDocument.originalFileName} – profil: ${CVS[i].profil}`);
+    const q = app.quickMatches[0];
+    if (q) {
+      const qr: QuickMatchResult = JSON.parse(q.resultJson);
+      log(`\n**Szybkie dopasowanie (bez AI): ${qr.score}%** · staż z dat w CV: ${qr.experienceYears ?? "–"} lat`);
+      log("\n| ID | Status | Uwagi |");
+      log("|---|---|---|");
+      for (const it of qr.items) log(`| ${it.code} | ${it.status} | ${it.note} |`);
+    }
     const a = app.analyses[0];
     if (!a) {
-      log(`Status: ${app.status} – ${app.statusMessage ?? ""}`);
+      if (app.status !== "gotowe") log(`Status: ${app.status} – ${app.statusMessage ?? ""}`);
+      if (app.aiStatus === "blad") log(`Analiza AI: błąd – ${app.aiStatusMessage ?? ""}`);
       continue;
     }
     const s: StoredAnalysis = JSON.parse(a.resultJson);

@@ -189,3 +189,18 @@ export const OFFER_STATUS: Record<string, { label: string; tone: BadgeTone }> = 
   aktywna: { label: "Aktywna", tone: "green" },
   zarchiwizowana: { label: "Zarchiwizowana", tone: "slate" },
 };
+
+export const STAGE_INFO: Record<string, { label: string; tone: BadgeTone }> = {
+  nowe: { label: "Nowe", tone: "blue" },
+  selekcja: { label: "Selekcja", tone: "violet" },
+  rozmowa: { label: "Rozmowa", tone: "amber" },
+  oferta: { label: "Oferta", tone: "amber" },
+  zatrudniony: { label: "Zatrudniony", tone: "green" },
+  odrzucony: { label: "Odrzucony", tone: "slate" },
+};
+
+export const AI_STATUS: Record<string, { label: string; tone: BadgeTone }> = {
+  oczekuje: { label: "AI: w kolejce", tone: "slate" },
+  analiza: { label: "AI: analiza…", tone: "violet" },
+  blad: { label: "AI: błąd", tone: "red" },
+};

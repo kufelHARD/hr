@@ -14,10 +14,14 @@ import {
 import {
   assignCandidateToOffer,
   deleteCandidate,
-  reanalyzeApplication,
+  requestAiAnalysis,
+  reprocessApplication,
+  setStage,
+  STAGES,
   removeApplication,
 } from "@/lib/services/candidates";
 import { enqueueApplication } from "@/lib/jobs/queue";
+import { runQuickMatch } from "@/lib/jobs/process";
 import { normalizeForSearch } from "@/lib/text";
 import { saveCompanyContext, saveTechMap, techMapSchema } from "@/lib/settings";
 
@@ -42,12 +46,12 @@ export async function saveRequirementsAction(input: z.input<typeof saveRequireme
   const res = await saveRequirements(d.offerId, { title: d.title, area: d.area, level: d.level }, d.requirements, d.note ?? undefined);
   if (!res.ok) return { error: res.error };
 
-  if (res.changed && d.reanalyze) {
-    const apps = await db.application.findMany({
-      where: { offerId: d.offerId, status: { in: ["gotowe", "blad"] } },
-      select: { id: true },
-    });
-    for (const a of apps) await reanalyzeApplication(a.id);
+  if (res.changed) {
+    // szybkie dopasowanie do nowej wersji wymagań – natychmiast, dla wszystkich kandydatów
+    const apps = await db.application.findMany({ where: { offerId: d.offerId, status: "gotowe" }, select: { id: true, aiStatus: true } });
+    for (const a of apps) await runQuickMatch(a.id);
+    // opcjonalnie: ponowna analiza AI dla kandydatów, którzy ją mieli
+    if (d.reanalyze) for (const a of apps.filter((x) => x.aiStatus === "gotowe")) await requestAiAnalysis(a.id);
   }
   revalidatePath(`/oferty/${d.offerId}`);
   redirect(`/oferty/${d.offerId}`);
@@ -74,19 +78,28 @@ export async function deleteOfferAction(offerId: string): Promise<Result> {
 
 // ---------- kandydaci ----------
 
-export async function reanalyzeAction(applicationId: string): Promise<Result> {
-  const res = await reanalyzeApplication(applicationId);
-  return res.ok ? { ok: true, message: "Analiza dodana do kolejki." } : { error: res.error };
+export async function aiAnalysisAction(applicationId: string): Promise<Result> {
+  const res = await requestAiAnalysis(applicationId);
+  return res.ok ? { ok: true, message: "Analiza AI dodana do kolejki." } : { error: res.error };
 }
 
-export async function reanalyzeAllAction(offerId: string): Promise<Result> {
-  const apps = await db.application.findMany({
-    where: { offerId, status: { in: ["gotowe", "blad", "nieczytelne"] } },
-    select: { id: true },
-  });
+export async function reprocessAction(applicationId: string): Promise<Result> {
+  const res = await reprocessApplication(applicationId);
+  return res.ok ? { ok: true, message: "Ponowny odczyt pliku w toku." } : { error: res.error };
+}
+
+/** Analiza AI dla wybranych kandydatów oferty (np. zakwalifikowanych do selekcji). */
+export async function aiForStageAction(offerId: string, stage: string): Promise<Result> {
+  const apps = await db.application.findMany({ where: { offerId, stage, status: "gotowe" }, select: { id: true } });
   let n = 0;
-  for (const a of apps) if ((await reanalyzeApplication(a.id)).ok) n++;
-  return { ok: true, message: `Dodano do kolejki: ${n}` };
+  for (const a of apps) if ((await requestAiAnalysis(a.id)).ok) n++;
+  return { ok: true, message: n ? `Analiza AI dodana do kolejki: ${n}` : "Brak kandydatów do analizy na tym etapie." };
+}
+
+export async function setStageAction(applicationId: string, stage: string): Promise<Result> {
+  if (!(STAGES as readonly string[]).includes(stage)) return { error: "Nieznany etap." };
+  await setStage(applicationId, stage as (typeof STAGES)[number]);
+  return { ok: true };
 }
 
 export async function retryStuckAction(applicationId: string): Promise<Result> {
@@ -250,4 +263,28 @@ export async function createBackupAction(): Promise<Result & { fileName?: string
   } catch (e) {
     return { error: `Nie udało się utworzyć kopii: ${(e as Error).message}` };
   }
+}
+
+// ---------- formularz „Aplikuj” ----------
+
+import { setPublicApply } from "@/lib/services/offers";
+import { savePublicUrl } from "@/lib/app-settings";
+import { formConfigSchema, saveClause, saveFormConfig } from "@/lib/apply/form-config";
+
+export async function setPublicApplyAction(offerId: string, enabled: boolean): Promise<Result> {
+  await setPublicApply(offerId, enabled);
+  revalidatePath(`/oferty/${offerId}`);
+  return { ok: true, message: enabled ? "Formularz przyjmuje zgłoszenia." : "Formularz zamknięty." };
+}
+
+export async function saveApplyFormAction(input: { publicUrl: string; config: unknown; clause: string }): Promise<Result> {
+  const url = input.publicUrl.trim();
+  if (url && !/^https?:\/\/[^\s/]+/.test(url)) return { error: "Adres publiczny musi zaczynać się od https:// (np. https://kariera.summ-it.pl)." };
+  const cfg = formConfigSchema.safeParse(input.config);
+  if (!cfg.success) return { error: `Niepoprawne ustawienia formularza: ${cfg.error.issues[0]?.message}` };
+  if (input.clause.trim().length < 50) return { error: "Klauzula informacyjna jest za krótka." };
+  savePublicUrl(url);
+  await saveFormConfig(cfg.data);
+  await saveClause(input.clause);
+  return { ok: true, message: "Zapisano ustawienia formularza." };
 }

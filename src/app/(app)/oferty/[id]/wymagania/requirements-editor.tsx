@@ -36,7 +36,7 @@ export function RequirementsEditor({
   const [area, setArea] = useState(details.area);
   const [level, setLevel] = useState(details.level);
   const [note, setNote] = useState("");
-  const [reanalyze, setReanalyze] = useState(true);
+  const [reanalyze, setReanalyze] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
@@ -194,7 +194,7 @@ export function RequirementsEditor({
             {candidateCount > 0 && (
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" checked={reanalyze} onChange={(e) => setReanalyze(e.target.checked)} />
-                Po zapisaniu przeanalizuj ponownie kandydatów tej oferty ({candidateCount}) – poprzednie analizy zostaną w historii
+                Uruchom też ponownie analizę AI dla kandydatów, którzy ją mieli (szybkie dopasowanie wszystkich {candidateCount} kandydatów przeliczy się zawsze)
               </label>
             )}
           </>

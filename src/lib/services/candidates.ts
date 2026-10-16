@@ -2,7 +2,7 @@ import path from "node:path";
 import { db } from "@/lib/db";
 import { detectFileKind, MIME_BY_KIND, UnsupportedFileError } from "@/lib/extract";
 import { deleteStoredFile, saveFile, sha256 } from "@/lib/storage";
-import { enqueueApplication } from "@/lib/jobs/queue";
+import { enqueueAiAnalysis, enqueueApplication } from "@/lib/jobs/queue";
 
 export const MAX_CV_BYTES = 25 * 1024 * 1024;
 
@@ -86,19 +86,44 @@ export async function assignCandidateToOffer(candidateId: string, offerId: strin
   return { ok: true, applicationId: app.id };
 }
 
-/** Ponowna analiza (nowy wpis w historii – poprzednie analizy zostają). */
-export async function reanalyzeApplication(applicationId: string): Promise<{ ok: boolean; error?: string }> {
+/** Analiza AI na żądanie (nowy wpis w historii – poprzednie analizy zostają). */
+export async function requestAiAnalysis(applicationId: string): Promise<{ ok: boolean; error?: string }> {
   const app = await db.application.findUnique({ where: { id: applicationId }, include: { offer: true, cvDocument: true } });
   if (!app) return { ok: false, error: "Zgłoszenie nie istnieje." };
   if (app.offer.status !== "aktywna") return { ok: false, error: "Oferta jest zarchiwizowana – tylko do odczytu." };
-  if (["oczekuje", "ekstrakcja", "analiza"].includes(app.status)) return { ok: false, error: "Analiza już trwa." };
-  // CV, którego nie udało się odczytać, próbujemy wyekstrahować ponownie
+  if (app.aiStatus === "oczekuje" || app.aiStatus === "analiza") return { ok: false, error: "Analiza AI już trwa." };
+  if (!app.cvDocument.extractedText || app.cvDocument.extractionMethod === "nieudana") {
+    return { ok: false, error: "Brak tekstu CV – najpierw ponów odczyt pliku." };
+  }
+  await db.application.update({ where: { id: applicationId }, data: { aiStatus: "oczekuje", aiStatusMessage: null } });
+  enqueueAiAnalysis(applicationId);
+  return { ok: true };
+}
+
+/** Ponowny odczyt pliku i szybkie dopasowanie (np. po nieudanej ekstrakcji). */
+export async function reprocessApplication(applicationId: string): Promise<{ ok: boolean; error?: string }> {
+  const app = await db.application.findUnique({ where: { id: applicationId }, include: { cvDocument: true } });
+  if (!app) return { ok: false, error: "Zgłoszenie nie istnieje." };
+  if (["oczekuje", "ekstrakcja"].includes(app.status)) return { ok: false, error: "Przetwarzanie już trwa." };
   if (app.cvDocument.extractionMethod === "nieudana") {
     await db.cvDocument.update({ where: { id: app.cvDocumentId }, data: { extractionMethod: null } });
   }
   await db.application.update({ where: { id: applicationId }, data: { status: "oczekuje", statusMessage: null } });
   enqueueApplication(applicationId);
   return { ok: true };
+}
+
+export const STAGES = ["nowe", "selekcja", "rozmowa", "oferta", "zatrudniony", "odrzucony"] as const;
+export type Stage = (typeof STAGES)[number];
+
+/** Zmiana etapu rekrutacji (z zapisem w historii). */
+export async function setStage(applicationId: string, stage: Stage): Promise<void> {
+  const app = await db.application.findUnique({ where: { id: applicationId } });
+  if (!app || app.stage === stage) return;
+  await db.$transaction([
+    db.application.update({ where: { id: applicationId }, data: { stage, stageChangedAt: new Date() } }),
+    db.stageEvent.create({ data: { applicationId, fromStage: app.stage, toStage: stage } }),
+  ]);
 }
 
 /**

@@ -66,7 +66,7 @@ export function CvUploader({ offerId }: { offerId: string }) {
           }}
         />
         <span className="font-medium text-slate-700">Przeciągnij pliki CV tutaj lub kliknij, aby wybrać</span>
-        <span className="mt-1 text-sm text-slate-500">PDF lub Word (.docx, .doc) · można wiele naraz · każde CV zostanie automatycznie przeanalizowane</span>
+        <span className="mt-1 text-sm text-slate-500">PDF lub Word (.docx, .doc) · można wiele naraz · każde CV od razu dostaje szybkie dopasowanie</span>
       </label>
       {items.length > 0 && (
         <ul className="space-y-1 text-sm">
@@ -89,7 +89,7 @@ export function CvUploader({ offerId }: { offerId: string }) {
         </ul>
       )}
       {!busy && items.some((i) => i.state === "ok") && (
-        <p className="text-xs text-slate-500">Analiza trwa w tle (zwykle 1–3 min na CV). Lista poniżej odświeża się automatycznie.</p>
+        <p className="text-xs text-slate-500">Odczyt i szybkie dopasowanie trwają kilka sekund (skany – dłużej). Lista odświeża się automatycznie.</p>
       )}
     </div>
   );

@@ -24,6 +24,9 @@ model JobOffer {
   summary          String?
   draftJson        String? // propozycja wymagań od AI – do edycji przed zapisem
   draftError       String? // komunikat, gdy AI nie wyodrębniło wymagań
+  slug             String?   @unique // adres publicznego formularza: /aplikuj/<slug>
+  publicApply      Boolean   @default(true) // czy formularz „Aplikuj” przyjmuje zgłoszenia
+  location         String?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
   archivedAt       DateTime?
@@ -43,6 +46,7 @@ model RequirementVersion {
 
   requirements Requirement[]
   analyses     Analysis[]
+  quickMatches QuickMatch[]
 
   @@unique([offerId, version])
 }
@@ -68,6 +72,8 @@ model Candidate {
   id                 String    @id @default(cuid())
   fullName           String?
   fullNameNormalized String? // małe litery, bez polskich znaków – do wyszukiwania
+  email              String?
+  phone              String?
   consentFuture      Boolean   @default(false) // zgoda na udział w przyszłych rekrutacjach
   consentAt          DateTime?
   createdAt          DateTime  @default(now())
@@ -109,13 +115,22 @@ model Application {
   offer         JobOffer   @relation(fields: [offerId], references: [id], onDelete: Cascade)
   cvDocumentId  String
   cvDocument    CvDocument @relation(fields: [cvDocumentId], references: [id], onDelete: Cascade)
-  status        String     @default("oczekuje") // oczekuje | ekstrakcja | analiza | gotowe | blad | nieczytelne
+  status        String     @default("oczekuje") // przetwarzanie pliku: oczekuje | ekstrakcja | gotowe | blad | nieczytelne
   statusMessage String?
+  aiStatus        String? // analiza AI na żądanie: oczekuje | analiza | gotowe | blad (null = nie zlecono)
+  aiStatusMessage String?
+  stage          String    @default("nowe") // etap rekrutacji: nowe | selekcja | rozmowa | oferta | zatrudniony | odrzucony
+  stageChangedAt DateTime?
+  source         String    @default("recznie") // skąd przyszło CV: recznie | pracuj.pl | justjoin.it | linkedin | ...
+  consentAt      DateTime? // zgoda na przetwarzanie danych w tej rekrutacji (formularz)
+  consentText    String? // treść klauzuli zaakceptowanej przez kandydata
   notes         String     @default("")
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
 
-  analyses Analysis[]
+  analyses     Analysis[]
+  quickMatches QuickMatch[]
+  stageEvents  StageEvent[]
 
   @@unique([candidateId, offerId])
   @@index([offerId])
@@ -169,4 +184,30 @@ model AiUsage {
   success          Boolean  @default(true)
 
   @@index([createdAt])
+}
+
+/// Natychmiastowe dopasowanie bez AI (słowa kluczowe, technologie pokrewne, certyfikaty, języki, staż).
+model QuickMatch {
+  id                   String             @id @default(cuid())
+  applicationId        String
+  application          Application        @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  requirementVersionId String
+  requirementVersion   RequirementVersion @relation(fields: [requirementVersionId], references: [id], onDelete: Cascade)
+  score                Float?
+  resultJson           String
+  createdAt            DateTime           @default(now())
+
+  @@index([applicationId, createdAt])
+}
+
+/// Historia zmian etapów rekrutacji.
+model StageEvent {
+  id            String      @id @default(cuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  fromStage     String?
+  toStage       String
+  createdAt     DateTime    @default(now())
+
+  @@index([applicationId])
 }

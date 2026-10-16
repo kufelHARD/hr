@@ -31,12 +31,18 @@ export function migrate(dbFile, migrationsDir, appDir) {
       .map((d) => d.name)
       .sort();
     let count = 0;
+    // Migracje Prismy dla SQLite przebudowują tabele (CREATE new_X → kopiowanie → DROP X → RENAME).
+    // Przy włączonych kluczach obcych DROP TABLE wywołałby kaskadowe usuwanie powiązanych rekordów,
+    // dlatego – jak Prisma – wyłączamy je na czas migracji (poza transakcją) i sprawdzamy spójność po niej.
+    db.pragma("foreign_keys = OFF");
     for (const name of names) {
       if (applied.has(name)) continue;
       const sql = fs.readFileSync(path.join(migrationsDir, name, "migration.sql"), "utf8");
       const checksum = crypto.createHash("sha256").update(sql).digest("hex");
       const run = db.transaction(() => {
         db.exec(sql);
+        const broken = db.pragma("foreign_key_check");
+        if (broken.length) throw new Error(`Migracja ${name} naruszyła spójność danych (${broken.length} rekordów).`);
         db.prepare(
           `INSERT INTO "_prisma_migrations" (id, checksum, finished_at, migration_name, started_at, applied_steps_count) VALUES (?, ?, datetime('now'), ?, datetime('now'), 1)`,
         ).run(crypto.randomUUID(), checksum, name);
@@ -44,6 +50,7 @@ export function migrate(dbFile, migrationsDir, appDir) {
       run();
       count++;
     }
+    db.pragma("foreign_keys = ON");
     return count;
   } finally {
     db.close();

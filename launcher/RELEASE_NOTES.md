@@ -11,3 +11,9 @@ Szczegóły: plik `INSTRUKCJA.txt` w paczce.
 - Aplikacja jest bezpłatna; domyślnie korzysta z darmowego modelu AI na Twoim komputerze (CV nie opuszczają komputera).
 - Opcjonalnie można włączyć płatny Claude API (własny klucz).
 - Paczka nie zawiera żadnych danych ani kluczy API.
+
+### Nowości w 1.1.0
+- **Szybkie dopasowanie bez AI** – każde CV ma wynik w kilka sekund; analiza AI tylko na żądanie (dla kandydata lub całego etapu).
+- **Etapy rekrutacji** (Nowe → Selekcja → Rozmowa → Oferta → Zatrudniony / Odrzucony) z historią zmian.
+- **Formularz „Aplikuj”** z linkami do ogłoszeń (pracuj.pl, justjoin.it…) – wymaga wersji serwerowej (opis w README).
+- Aktualizacja z 1.0.0: podmień folder `program` – dane i dotychczasowe analizy zostaną zachowane.

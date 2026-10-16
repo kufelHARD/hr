@@ -10,9 +10,18 @@ import { Alert, Card } from "@/components/ui";
 import { CompanyContextForm, TechMapForm } from "./settings-forms";
 import { AiSettingsForm } from "./ai-settings-form";
 import { BackupButton } from "./backup-button";
+import { ApplyFormSettings } from "./apply-form-settings";
+import { getPublicUrl } from "@/lib/app-settings";
+import { loadClause, loadFormConfig } from "@/lib/apply/form-config";
 
 export default async function SettingsPage() {
-  const [company, techMap, costs] = await Promise.all([loadCompanyContext(), loadTechMap(), costSummary()]);
+  const [company, techMap, costs, formCfg, clause] = await Promise.all([
+    loadCompanyContext(),
+    loadTechMap(),
+    costSummary(),
+    loadFormConfig(),
+    loadClause(),
+  ]);
   let scoring = null;
   let scoringError: string | null = null;
   try {
@@ -30,7 +39,19 @@ export default async function SettingsPage() {
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold">Ustawienia</h1>
 
-      <Card title="Silnik AI">
+      <Card title="Formularz „Aplikuj”">
+        <p className="mb-4 text-sm text-slate-500">
+          Publiczny formularz, do którego prowadzą linki z ogłoszeń (pracuj.pl, justjoin.it…). Linki dla każdej oferty znajdziesz na jej stronie.
+        </p>
+        <ApplyFormSettings
+          publicUrl={getPublicUrl() ?? ""}
+          envUrl={Boolean(process.env.PUBLIC_URL?.trim())}
+          config={formCfg}
+          clause={clause}
+        />
+      </Card>
+
+      <Card title="Silnik AI (analiza na żądanie)">
         <AiSettingsForm
           initial={{
             provider: ai.provider,

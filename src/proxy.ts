@@ -15,6 +15,6 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // wszystko poza stroną logowania i zasobami statycznymi
-  matcher: ["/((?!logowanie|_next/static|_next/image|favicon.ico).*)"],
+  // wszystko poza stroną logowania, publicznym formularzem „Aplikuj” i zasobami statycznymi
+  matcher: ["/((?!logowanie|aplikuj|api/aplikuj|_next/static|_next/image|favicon.ico).*)"],
 };

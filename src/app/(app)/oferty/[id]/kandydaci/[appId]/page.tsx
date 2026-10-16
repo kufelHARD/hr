@@ -1,15 +1,20 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { candidateDisplayName } from "@/lib/services/candidates";
+import { STAGES, candidateDisplayName } from "@/lib/services/candidates";
+import { sourceLabel } from "@/lib/apply/sources";
+import { getAiSettings } from "@/lib/app-settings";
+import type { QuickMatchResult } from "@/lib/matching";
 import { RECOMMENDATION_LABELS, CATEGORY_LABELS, type StoredAnalysis, type RequirementCategory, type Recommendation, type EvidenceCheck } from "@/lib/ai/schemas";
 import { POTENTIAL_COMPONENTS, POTENTIAL_LABELS, STATUS_LABELS, TYPE_LABELS, type RequirementType } from "@/lib/scoring";
 import type { ScoringConfig } from "@/lib/settings";
-import { ActionButton, AutoRefresh } from "@/components/client";
+import { ActionButton, AutoRefresh, StageSelect } from "@/components/client";
 import { formatPln } from "@/lib/ai/pricing";
 import {
+  AI_STATUS,
   APPLICATION_STATUS,
   AiDisclaimer,
+  STAGE_INFO,
   Alert,
   Badge,
   Card,
@@ -21,10 +26,19 @@ import {
   cx,
   formatDate,
 } from "@/components/ui";
-import { deleteCandidateAction, reanalyzeAction, removeApplicationAction } from "../../../../actions";
+import { aiAnalysisAction, deleteCandidateAction, removeApplicationAction, reprocessAction, setStageAction } from "../../../../actions";
 import { AssignForm, ConsentToggle, NotesForm, RenameForm } from "./candidate-forms";
 
 const PENDING = ["oczekuje", "ekstrakcja", "analiza"];
+const AI_PENDING = ["oczekuje", "analiza"];
+
+const QUICK_NOTE: Record<string, string> = {
+  pelne: "Znaleziono",
+  pokrewne: "Pokrewne",
+  czesciowe: "Częściowe",
+  brak: "Brak",
+  do_oceny: "Do oceny",
+};
 
 const EVIDENCE_INFO: Record<EvidenceCheck, { icon: string; title: string; className: string } | null> = {
   zweryfikowany: { icon: "✓", title: "Cytat odnaleziony w tekście CV", className: "text-emerald-600" },
@@ -49,6 +63,12 @@ export default async function CandidatePage({ params, searchParams }: PageProps<
         orderBy: { createdAt: "desc" },
         include: { requirementVersion: { include: { requirements: { orderBy: { position: "asc" } } } } },
       },
+      quickMatches: {
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        include: { requirementVersion: { include: { requirements: { orderBy: { position: "asc" } } } } },
+      },
+      stageEvents: { orderBy: { createdAt: "desc" } },
     },
   });
   if (!app || app.offerId !== id) notFound();
@@ -62,7 +82,13 @@ export default async function CandidatePage({ params, searchParams }: PageProps<
   const latestVersion = await db.requirementVersion.findFirst({ where: { offerId: id }, orderBy: { version: "desc" } });
   const outdated = analysis && latestVersion && analysis.requirementVersionId !== latestVersion.id;
 
-  const pending = PENDING.includes(app.status);
+  const filePending = PENDING.includes(app.status);
+  const aiPending = AI_PENDING.includes(app.aiStatus ?? "");
+  const pending = filePending || aiPending;
+  const quick = app.quickMatches[0] ?? null;
+  const quickResult: QuickMatchResult | null = quick ? JSON.parse(quick.resultJson) : null;
+  const quickReqs = new Map(quick?.requirementVersion.requirements.map((r) => [r.code, r]) ?? []);
+  const aiProvider = getAiSettings().provider;
   const st = APPLICATION_STATUS[app.status];
   const warnings: string[] = app.cvDocument.extractionWarnings ? JSON.parse(app.cvDocument.extractionWarnings) : [];
   const name = candidateDisplayName(app.candidate, app.cvDocument.originalFileName);
@@ -113,9 +139,20 @@ export default async function CandidatePage({ params, searchParams }: PageProps<
             <a href={`/api/pliki/cv/${app.cvDocumentId}?pobierz=1`} className={buttonStyles.secondary}>
               Pobierz CV
             </a>
-            {!readOnly && !pending && (
-              <ActionButton action={reanalyzeAction.bind(null, app.id)} confirm="Uruchomić ponowną analizę? Poprzednia zostanie w historii.">
-                ↻ Analizuj ponownie
+            {!readOnly && !filePending && app.status !== "gotowe" && (
+              <ActionButton action={reprocessAction.bind(null, app.id)}>↻ Odczytaj plik ponownie</ActionButton>
+            )}
+            {!readOnly && !pending && app.status === "gotowe" && (
+              <ActionButton
+                variant={analysis ? "secondary" : "primary"}
+                action={aiAnalysisAction.bind(null, app.id)}
+                confirm={
+                  aiProvider === "ollama"
+                    ? "Uruchomić analizę AI na modelu lokalnym? Na komputerze bez karty graficznej może potrwać kilka–kilkanaście minut (w tle)."
+                    : "Uruchomić analizę AI (Claude – płatne, zwykle 1–2 min)?"
+                }
+              >
+                {analysis ? "↻ Ponów analizę AI" : "✨ Analiza AI"}
               </ActionButton>
             )}
           </div>
@@ -131,8 +168,57 @@ export default async function CandidatePage({ params, searchParams }: PageProps<
         </Alert>
       )}
       {app.status === "gotowe" && app.statusMessage && <Alert>{app.statusMessage}</Alert>}
+      {app.aiStatus && app.aiStatus !== "gotowe" && (
+        <Alert tone={app.aiStatus === "blad" ? "red" : "blue"}>
+          <strong>{AI_STATUS[app.aiStatus]?.label ?? app.aiStatus}</strong>
+          {app.aiStatusMessage && <> – {app.aiStatusMessage}</>}
+          {aiPending && <span className="ml-1">Możesz w tym czasie pracować – strona odświeży się sama.</span>}
+        </Alert>
+      )}
 
       <AiDisclaimer />
+
+      {quickResult && (
+        <details className="group rounded-xl border border-slate-200 bg-white shadow-sm" open={!analysis}>
+          <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-4 gap-y-1 px-5 py-3">
+            <span className="font-semibold text-slate-800">
+              <span className="mr-2 inline-block transition-transform group-open:rotate-90">›</span>Szybkie dopasowanie (bez AI)
+            </span>
+            <ScoreBar score={quickResult.score} />
+            {quickResult.experienceYears !== null && <span className="text-sm text-slate-500">staż w CV ok. {quickResult.experienceYears} lat</span>}
+          </summary>
+          <div className="border-t border-slate-100 p-5">
+            <p className="mb-3 text-sm text-slate-500">
+              Automatyczne porównanie słów kluczowych, technologii pokrewnych, certyfikatów i języków – natychmiastowe, ale mniej dokładne niż
+              analiza AI. Staż liczony z dat w CV (łącznie, nie dla konkretnej technologii). Pozycje „do oceny” nie wpływają na wynik.
+            </p>
+            <div className="-mx-5 overflow-x-auto">
+              <table className="w-full min-w-[720px] text-sm">
+                <tbody className="divide-y divide-slate-100 align-top">
+                  {quickResult.items.map((i) => {
+                    const r = quickReqs.get(i.code);
+                    return (
+                      <tr key={i.code}>
+                        <td className="w-2/5 px-5 py-2">
+                          <div className="text-slate-800">{r?.text ?? i.code}</div>
+                          {r && <div className="text-xs text-slate-400">{TYPE_LABELS[r.type as RequirementType]} · waga {r.weight}</div>}
+                        </td>
+                        <td className="px-2 py-2">
+                          <Badge tone={i.status === "do_oceny" ? "slate" : REQUIREMENT_STATUS_TONE[i.status]}>{QUICK_NOTE[i.status]}</Badge>
+                        </td>
+                        <td className="px-5 py-2 text-slate-600">
+                          {i.note}
+                          {i.evidence && <div className="mt-1 border-l-2 border-slate-200 pl-2 text-xs text-slate-500">„{i.evidence}”</div>}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </details>
+      )}
 
       {analysis && out && stored ? (
         <>
@@ -313,7 +399,13 @@ export default async function CandidatePage({ params, searchParams }: PageProps<
           </Card>
         </>
       ) : (
-        !pending && app.status === "gotowe" && <Alert>Brak analizy.</Alert>
+        !pending &&
+        app.status === "gotowe" && (
+          <Alert tone="blue">
+            Ten kandydat nie ma jeszcze analizy AI (opis, potencjał, pytania na rozmowę). Uruchom ją przyciskiem „✨ Analiza AI” u góry – zwykle
+            warto robić to dla kandydatów wybranych do selekcji.
+          </Alert>
+        )
       )}
 
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
@@ -323,6 +415,54 @@ export default async function CandidatePage({ params, searchParams }: PageProps<
         <div className="space-y-6">
           <Card title="Kandydat">
             <div className="space-y-4">
+              <div className="space-y-1 text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="w-16 text-slate-500">Etap</span>
+                  <StageSelect
+                    value={app.stage}
+                    stages={STAGES.map((s) => ({ key: s, label: STAGE_INFO[s].label }))}
+                    action={setStageAction.bind(null, app.id)}
+                    disabled={readOnly}
+                  />
+                </div>
+                <div>
+                  <span className="inline-block w-16 text-slate-500">Źródło</span> {sourceLabel(app.source)}
+                </div>
+                {app.candidate.email && (
+                  <div>
+                    <span className="inline-block w-16 text-slate-500">E-mail</span>{" "}
+                    <a href={`mailto:${app.candidate.email}`} className="text-brand-700 hover:underline">
+                      {app.candidate.email}
+                    </a>
+                  </div>
+                )}
+                {app.candidate.phone && (
+                  <div>
+                    <span className="inline-block w-16 text-slate-500">Telefon</span>{" "}
+                    <a href={`tel:${app.candidate.phone}`} className="text-brand-700 hover:underline">
+                      {app.candidate.phone}
+                    </a>
+                  </div>
+                )}
+                {app.consentAt && (
+                  <details className="pt-1">
+                    <summary className="cursor-pointer text-slate-600">Zgoda na przetwarzanie danych: {formatDate(app.consentAt, true)}</summary>
+                    <pre className="mt-1 max-h-48 overflow-auto whitespace-pre-wrap rounded bg-slate-50 p-2 font-sans text-xs text-slate-600">{app.consentText}</pre>
+                  </details>
+                )}
+                {app.stageEvents.length > 0 && (
+                  <details className="pt-1">
+                    <summary className="cursor-pointer text-slate-600">Historia etapów ({app.stageEvents.length})</summary>
+                    <ul className="mt-1 space-y-0.5 text-xs text-slate-500">
+                      {app.stageEvents.map((e) => (
+                        <li key={e.id}>
+                          {formatDate(e.createdAt, true)}: {STAGE_INFO[e.fromStage ?? ""]?.label ?? "–"} → {STAGE_INFO[e.toStage]?.label ?? e.toStage}
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+              </div>
               <ConsentToggle
                 candidateId={app.candidateId}
                 initial={app.candidate.consentFuture}

@@ -45,6 +45,7 @@ const settingsSchema = z.object({
     })
     .optional(),
   hasloHash: z.string().optional(),
+  adresPubliczny: z.string().optional(),
 });
 type StoredSettings = z.infer<typeof settingsSchema>;
 
@@ -121,6 +122,18 @@ export function saveAiSettings(input: {
       },
     },
   });
+}
+
+// ---------- adres publiczny (formularz „Aplikuj”) ----------
+
+/** Adres, pod którym ATS jest dostępny z internetu, np. https://kariera.summ-it.pl (bez ukośnika na końcu). */
+export function getPublicUrl(): string | null {
+  const v = process.env.PUBLIC_URL?.trim() || readStored().adresPubliczny?.trim();
+  return v ? v.replace(/\/+$/, "") : null;
+}
+
+export function savePublicUrl(url: string) {
+  writeStored({ ...readStored(), adresPubliczny: url.trim().replace(/\/+$/, "") || undefined });
 }
 
 // ---------- hasło aplikacji ----------

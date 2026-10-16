@@ -8,6 +8,27 @@ import { REQUIREMENT_CATEGORIES, type OfferExtraction } from "@/lib/ai/schemas";
 import { REQUIREMENT_TYPES } from "@/lib/scoring";
 import { deleteStoredFile, saveFile } from "@/lib/storage";
 import { deleteCandidate } from "./candidates";
+import { slugify } from "@/lib/apply/sources";
+
+/** Nadaje ofercie adres publicznego formularza (/aplikuj/<slug>), jeśli jeszcze go nie ma. */
+export async function ensureOfferSlug(offerId: string): Promise<string> {
+  const offer = await db.jobOffer.findUniqueOrThrow({ where: { id: offerId } });
+  if (offer.slug) return offer.slug;
+  for (let i = 0; i < 5; i++) {
+    const slug = slugify(offer.title);
+    try {
+      await db.jobOffer.update({ where: { id: offerId }, data: { slug } });
+      return slug;
+    } catch {
+      /* kolizja – kolejna próba */
+    }
+  }
+  throw new Error("Nie udało się nadać adresu formularza.");
+}
+
+export async function setPublicApply(offerId: string, enabled: boolean) {
+  await db.jobOffer.update({ where: { id: offerId }, data: { publicApply: enabled } });
+}
 
 export const MAX_OFFER_BYTES = 20 * 1024 * 1024;
 
@@ -203,6 +224,7 @@ export async function saveRequirements(
     });
     return next;
   });
+  await ensureOfferSlug(offerId);
   return { ok: true, version, changed };
 }
 

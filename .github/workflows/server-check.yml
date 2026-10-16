@@ -1,0 +1,59 @@
+# Sprawdza wdrożenie serwerowe: obraz Docker, konfiguracja Caddy (HTTPS) i podstawowe zabezpieczenia.
+name: Wdrożenie serwerowe (test)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["Dockerfile", "docker-compose.server.yml", "deploy/**", "package.json", "src/**", "prisma/**", ".github/workflows/server-check.yml"]
+
+permissions:
+  contents: read
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Konfiguracja Caddy
+        run: |
+          docker run --rm -v "$PWD/deploy/Caddyfile:/etc/caddy/Caddyfile:ro" \
+            -e DOMAIN=kariera.example.com -e "ADMIN_ALLOWED_IPS=203.0.113.10 10.0.0.0/8" \
+            caddy:2 caddy validate --config /etc/caddy/Caddyfile
+
+      - name: Uruchomienie (DOMAIN=localhost, certyfikat lokalny Caddy)
+        run: |
+          echo "DOMAIN=localhost" > .env
+          docker compose -f docker-compose.server.yml up -d --build
+          for i in $(seq 1 60); do
+            curl -sk -o /dev/null -w "%{http_code}" https://localhost/logowanie | grep -q 200 && break
+            sleep 3
+          done
+          docker compose -f docker-compose.server.yml ps
+
+      - name: Testy dostępu
+        run: |
+          set -e
+          code() { curl -sk -o /dev/null -w "%{http_code}" "$1"; }
+          echo "logowanie: $(code https://localhost/logowanie)";            test "$(code https://localhost/logowanie)" = 200
+          echo "panel bez sesji: $(code https://localhost/ustawienia)";      test "$(code https://localhost/ustawienia)" = 307
+          echo "API bez sesji: $(code https://localhost/api/oferty)";        test "$(code https://localhost/api/oferty)" = 405 -o "$(code https://localhost/api/oferty)" = 401
+          echo "formularz (brak oferty): $(code https://localhost/aplikuj/x)"; test "$(code https://localhost/aplikuj/x)" = 404
+          curl -skI https://localhost/logowanie | grep -i "strict-transport-security"
+          echo "http → https: $(curl -s -o /dev/null -w '%{http_code}' http://localhost/logowanie)"
+
+      - name: Panel tylko z sieci firmowej (ADMIN_ALLOWED_IPS)
+        run: |
+          set -e
+          printf "DOMAIN=localhost\nADMIN_ALLOWED_IPS=203.0.113.10\n" > .env
+          docker compose -f docker-compose.server.yml up -d caddy
+          sleep 5
+          code() { curl -sk -o /dev/null -w "%{http_code}" "$1"; }
+          echo "panel z innego adresu: $(code https://localhost/logowanie)"; test "$(code https://localhost/logowanie)" = 403
+          echo "formularz publiczny: $(code https://localhost/aplikuj/x)";  test "$(code https://localhost/aplikuj/x)" = 404
+
+      - name: Logi
+        if: always()
+        run: docker compose -f docker-compose.server.yml logs --tail=80

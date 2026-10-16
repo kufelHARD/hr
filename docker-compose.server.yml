@@ -1,0 +1,45 @@
+# Wdrożenie ATS na serwerze firmy (dostęp z internetu, HTTPS).
+#   1. skopiuj .env.server.example do .env i uzupełnij DOMAIN (np. kariera.summ-it.pl),
+#   2. skieruj rekord DNS domeny na ten serwer, otwórz porty 80 i 443,
+#   3. docker compose -f docker-compose.server.yml up -d --build
+services:
+  app:
+    build: .
+    image: porownywarka-cv
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATA_DIR: /app/storage
+      DATABASE_URL: file:/app/storage/app.db
+      BACKUP_DIR: /app/backups
+      PUBLIC_URL: https://${DOMAIN}
+      COOKIE_SECURE: "true"
+    volumes:
+      - ./storage:/app/storage # DANE OSOBOWE kandydatów (baza + pliki CV)
+      - ./config:/app/config
+      - ./prompts:/app/prompts
+      - ./backups:/app/backups
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    # port 3000 nie jest wystawiony na zewnątrz – ruch idzie wyłącznie przez Caddy (HTTPS)
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on: [app]
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?Ustaw DOMAIN w pliku .env}
+      ADMIN_ALLOWED_IPS: ${ADMIN_ALLOWED_IPS:-0.0.0.0/0 ::/0}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

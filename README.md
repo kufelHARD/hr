@@ -1,6 +1,10 @@
 # Porównywarka CV – summ-it S.A.
 
-Wewnętrzna aplikacja działu HR do zarządzania ofertami pracy i porównywania CV kandydatów z ofertami przy pomocy AI. Wszystkie dane (baza, pliki CV) są przechowywane lokalnie.
+Wewnętrzna aplikacja działu HR (prosty ATS) do zarządzania ofertami pracy, zbierania CV z portali ogłoszeniowych i porównywania kandydatów z ofertami. Wszystkie dane (baza, pliki CV) są przechowywane na komputerze lub serwerze firmy.
+
+- **Każde CV dostaje wynik w kilka sekund** – szybkie dopasowanie bez AI (słowa kluczowe, technologie pokrewne, staż, języki).
+- **Pełna analiza AI tylko na żądanie** – dla wybranych kandydatów albo całego etapu.
+- **Link „Aplikuj”** do wklejenia w ogłoszeniu na pracuj.pl, justjoin.it, nofluffjobs itd. – CV trafiają prosto do aplikacji, ze źródłem i zgodami.
 
 **Aplikacja jest bezpłatna.** Domyślnie analizy wykonuje darmowy model AI działający na Twoim komputerze (Ollama) – bez opłat i bez wysyłania CV do internetu. Opcjonalnie można włączyć płatny Claude API (wyższa jakość, własny klucz).
 
@@ -9,29 +13,79 @@ Wewnętrzna aplikacja działu HR do zarządzania ofertami pracy i porównywania 
 ## Spis treści
 
 1. [Co potrafi](#co-potrafi)
-2. [Wersja do pobrania (Windows)](#wersja-do-pobrania-windows)
-3. [Silnik AI, koszty i inne komputery](#silnik-ai-koszty-i-inne-komputery)
-4. [Instalacja ze źródeł (dla programistów)](#instalacja-ze-źródeł-dla-programistów)
-5. [Jak działa ocena](#jak-działa-ocena)
-6. [Strojenie: wagi, mapa technologii, kontekst firmy, prompty](#strojenie)
-7. [Kopia zapasowa i odtwarzanie](#kopia-zapasowa-i-odtwarzanie)
-8. [RODO i bezpieczeństwo](#rodo-i-bezpieczeństwo)
-9. [Docker](#docker)
-10. [Dane przykładowe (seed) i testy](#dane-przykładowe-seed-i-testy)
-11. [Struktura projektu](#struktura-projektu)
-12. [Ograniczenia](#ograniczenia)
+2. [Zbieranie CV z portali (link „Aplikuj”)](#zbieranie-cv-z-portali-link-aplikuj)
+3. [Instalacja na serwerze firmy](#instalacja-na-serwerze-firmy)
+4. [Wersja do pobrania (Windows)](#wersja-do-pobrania-windows)
+5. [Silnik AI, koszty i inne komputery](#silnik-ai-koszty-i-inne-komputery)
+6. [Instalacja ze źródeł (dla programistów)](#instalacja-ze-źródeł-dla-programistów)
+7. [Jak działa ocena](#jak-działa-ocena)
+8. [Strojenie: wagi, mapa technologii, kontekst firmy, prompty](#strojenie)
+9. [Kopia zapasowa i odtwarzanie](#kopia-zapasowa-i-odtwarzanie)
+10. [RODO i bezpieczeństwo](#rodo-i-bezpieczeństwo)
+11. [Docker](#docker)
+12. [Dane przykładowe (seed) i testy](#dane-przykładowe-seed-i-testy)
+13. [Struktura projektu](#struktura-projektu)
+14. [Ograniczenia](#ograniczenia)
 
 ## Co potrafi
 
 - **Oferty pracy** – dodawanie z plików Word (.docx; stary .doc konwertowany przez LibreOffice), także kilku naraz, lub z wklejonej treści. AI automatycznie odczytuje z pliku stanowisko i wymagane kompetencje (wymagane / mile widziane, kategoria, waga 1–3) – niezależnie od nazw sekcji i formatowania (listy, tabele, pogrubione nagłówki). Domyślnie oferta jest od razu aktywna; wymagania można w każdej chwili poprawić (albo odznaczyć automatyczną aktywację i przejrzeć je przed startem). Każda zmiana wymagań tworzy nową wersję. Archiwizacja, usuwanie, pobieranie oryginału.
-- **Kandydaci** – wgrywanie wielu CV naraz (przeciągnij i upuść; PDF, DOCX, DOC). Ekstrakcja tekstu z zachowaniem kolejności w CV wielokolumnowych, OCR (polski + angielski) dla skanów. Każde CV jest automatycznie analizowane i dostaje krótki opis.
-- **Wynik kandydata** – opis, dwa wskaźniki (Dopasowanie %, Potencjał %), tabela wymagań ze statusem, dowodem z CV i uzasadnieniem, składowe potencjału, mocne i słabe strony, technologie pokrewne, pytania na rozmowę, notatki rekrutera, podgląd i pobranie oryginalnego CV, historia analiz.
+- **Kandydaci** – wgrywanie wielu CV naraz (przeciągnij i upuść; PDF, DOCX, DOC) albo automatycznie przez publiczny formularz „Aplikuj”. Ekstrakcja tekstu z zachowaniem kolejności w CV wielokolumnowych, OCR (polski + angielski) dla skanów. Każde CV od razu dostaje **szybkie dopasowanie (bez AI)** – tabelę wymagań ze statusem i fragmentem CV.
+- **Etapy rekrutacji (ATS)** – Nowe → Selekcja → Rozmowa → Oferta → Zatrudniony / Odrzucony, zakładki z liczbą kandydatów, historia zmian etapu, źródło aplikacji (pracuj.pl, justjoin.it…), sortowanie po dopasowaniu, potencjale lub dacie.
+- **Analiza AI na żądanie** – przycisk „✨ Analiza AI” na karcie kandydata albo „Analiza AI dla tego etapu” (np. tylko dla kandydatów w Selekcji). Analiza działa w tle; w tym czasie można pracować dalej.
+- **Wynik AI kandydata** – opis, dwa wskaźniki (Dopasowanie %, Potencjał %), tabela wymagań ze statusem, dowodem z CV i uzasadnieniem, składowe potencjału, mocne i słabe strony, technologie pokrewne, pytania na rozmowę, notatki rekrutera, podgląd i pobranie oryginalnego CV, historia analiz.
 - **Archiwum** – wszystko zapisane trwale; ponowna analiza nie nadpisuje poprzedniej. Wyszukiwarka kandydatów we wszystkich ofertach (imię i nazwisko, technologia, słowo kluczowe – także bez polskich znaków). Przypisanie istniejącego kandydata do innej oferty bez ponownego wgrywania pliku.
 - **Ustawienia** – edycja mapy technologii pokrewnych i opisu firmy z poziomu aplikacji.
 
+## Zbieranie CV z portali (link „Aplikuj”)
+
+Każda aktywna oferta ma publiczny formularz aplikacyjny. Na stronie oferty, w karcie **„Linki „Aplikuj” do ogłoszeń”**, są gotowe linki – osobny dla każdego portalu, np.:
+
+```
+https://rekrutacja.twoja-firma.pl/aplikuj/data-engineer-k3x9?zrodlo=pracuj
+https://rekrutacja.twoja-firma.pl/aplikuj/data-engineer-k3x9?zrodlo=justjoin
+```
+
+1. Skopiuj link przyciskiem „Kopiuj” i wklej go w ogłoszeniu jako **zewnętrzny adres aplikowania / przekierowanie** (na pracuj.pl, justjoin.it, nofluffjobs, LinkedIn itd. – opcja „aplikowanie przez stronę pracodawcy / external apply URL”; dostępność zależy od portalu i wykupionego pakietu – w razie wątpliwości zapytaj opiekuna konta w portalu). Link można też wstawić na stronę „Kariera” lub wysłać w wiadomości.
+2. Kandydat klika „Aplikuj” w ogłoszeniu → widzi formularz z nazwą stanowiska → podaje imię i nazwisko, e-mail, telefon (opcjonalnie), dołącza CV (PDF/DOCX/DOC), zaznacza zgodę (obowiązkową) i zgodę na przyszłe rekrutacje (opcjonalną).
+3. Zgłoszenie pojawia się od razu w zakładce **Nowe** oferty, ze źródłem (np. „pracuj.pl”), datą i treścią zgód, a po kilku sekundach – z wynikiem szybkiego dopasowania.
+
+Szczegóły:
+- **Źródło** pochodzi z parametru `?zrodlo=` (pracuj, justjoin, nofluffjobs, linkedin, rocketjobs, olx, strona, polecenie; inne wartości → „formularz”).
+- **Zamknięcie rekrutacji**: przycisk „Zamknij formularz” na stronie oferty albo archiwizacja oferty – link pokazuje wtedy komunikat „Rekrutacja zakończona”.
+- **Ochrona przed spamem**: ukryte pole-pułapka, minimalny czas wypełnienia, limit 5 zgłoszeń na godzinę z jednego adresu IP, limit rozmiaru pliku, ten sam e-mail może aplikować na daną ofertę tylko raz (kandydat aplikujący na kilka ofert to jedna osoba w bazie).
+- **Treść formularza** (nazwa firmy, treść zgód, podziękowanie, maks. rozmiar pliku, **klauzula informacyjna RODO**) – **Ustawienia → Formularz „Aplikuj”**. Szablon klauzuli (`config/klauzula-rodo.md`) zawiera pola w nawiasach kwadratowych do uzupełnienia – **przed publikacją linków zatwierdź klauzulę z IOD**.
+- Formularz i panel HR to ta sama aplikacja: publiczne są wyłącznie `/aplikuj/...` i jego API; reszta wymaga hasła.
+
+**Link działa tylko wtedy, gdy aplikacja jest dostępna z internetu** – czyli w wersji serwerowej (niżej). Wersja Windows działa na laptopie i nie jest osiągalna dla kandydatów.
+
+## Instalacja na serwerze firmy
+
+Potrzebne: serwer lub maszyna wirtualna w chmurze (Linux, 2 vCPU, 2–4 GB RAM wystarczą bez lokalnego AI), Docker z Compose, domena (np. `rekrutacja.twoja-firma.pl`), otwarte porty 80 i 443.
+
+1. W DNS domeny dodaj rekord **A** (i ewentualnie AAAA) `rekrutacja` → publiczny adres IP serwera.
+2. Na serwerze:
+   ```bash
+   git clone https://github.com/kufelHARD/hr.git porownywarka && cd porownywarka
+   cp .env.server.example .env      # wpisz DOMAIN=rekrutacja.twoja-firma.pl
+   docker compose -f docker-compose.server.yml up -d --build
+   ```
+3. Otwórz `https://rekrutacja.twoja-firma.pl` – certyfikat HTTPS (Let's Encrypt) wystawi się automatycznie (Caddy). Ustaw hasło przy pierwszym wejściu.
+
+Co jest w zestawie (`docker-compose.server.yml`, `deploy/Caddyfile`):
+- **Caddy** – HTTPS z automatycznym odnawianiem certyfikatu, nagłówki bezpieczeństwa (HSTS, nosniff, ramki), limit 20 MB na wysyłane pliki.
+- **`ADMIN_ALLOWED_IPS`** (opcjonalnie, w `.env`) – panel HR dostępny tylko z podanych adresów (np. biuro / VPN: `ADMIN_ALLOWED_IPS=203.0.113.10 198.51.100.0/24`); formularz „Aplikuj” zostaje publiczny.
+- Aplikacja z `PUBLIC_URL=https://DOMENA` (linki „Aplikuj” budowane z tego adresu) i `COOKIE_SECURE=true`.
+- Dane w katalogach na hoście: `storage/` (baza, CV), `config/`, `prompts/`, `backups/`. **Rób kopie zapasowe serwera** (`docker compose -f docker-compose.server.yml exec app npm run backup` → `backups/`, albo kopia całego katalogu).
+- Aktualizacja: `git pull && docker compose -f docker-compose.server.yml up -d --build` (migracje bazy wykonują się przy starcie).
+
+**AI na serwerze:** szybkie dopasowanie nie wymaga AI. Do analizy na żądanie wybierz w Ustawieniach Claude API (wymaga zgody IOD – patrz RODO) albo wskaż Ollamę na innej maszynie z kartą graficzną (`OLLAMA_URL` w `.env`; Ollama na serwerze bez GPU będzie bardzo wolna).
+
+Automat `.github/workflows/server-check.yml` przy każdej zmianie buduje zestaw serwerowy i sprawdza: start za Caddy, HTTPS, nagłówki, publiczny dostęp do formularza, ochronę panelu hasłem i ograniczenie po IP.
+
 ## Wersja do pobrania (Windows)
 
-Gotowa paczka nie wymaga instalowania Node.js ani niczego poza (opcjonalnie) darmową Ollamą.
+Gotowa paczka nie wymaga instalowania Node.js ani niczego poza (opcjonalnie) darmową Ollamą. Nadaje się do pracy na jednym komputerze (wgrywanie CV ręcznie, szybkie dopasowanie, AI na żądanie). Do zbierania CV linkiem z portali potrzebna jest [wersja serwerowa](#instalacja-na-serwerze-firmy).
 
 1. Pobierz `Porownywarka-CV-windows-x64.zip` z zakładki **Releases** repozytorium na GitHubie.
 2. Rozpakuj (np. do folderu Dokumenty – nie do „Program Files”) i uruchom **`Uruchom.cmd`**. Aplikacja otworzy się w przeglądarce (http://localhost:3000).
@@ -92,7 +146,18 @@ Wersja produkcyjna: `npm run build && npm start`.
 
 ## Jak działa ocena
 
-Po wgraniu CV: **ekstrakcja tekstu** (lokalnie, łącznie z OCR) → **analiza AI** (jedno zapytanie: ocena każdego wymagania + składowe potencjału + opis) → **wynik liczony przez kod** → zapis w bazie.
+Po wgraniu CV: **ekstrakcja tekstu** (lokalnie, łącznie z OCR) → **szybkie dopasowanie** (kod, kilka sekund) → zapis w bazie. Na żądanie: **analiza AI** (jedno zapytanie: ocena każdego wymagania + składowe potencjału + opis) → **wynik liczony przez kod**.
+
+### Szybkie dopasowanie (bez AI)
+
+Liczone przez kod (`src/lib/matching`) dla każdego CV i ponownie po każdej zmianie wymagań:
+- wyszukuje w CV nazwy technologii z wymagań (także warianty i skróty, np. „MS SQL” = „SQL Server”, bez polskich znaków), a dla wymagań typu „A lub B” / „A/B” – dowolną z nich;
+- jeśli brak dokładnej technologii, szuka **pokrewnej** z mapy technologii (np. AWS zamiast Azure) → status `pokrewne`;
+- dla wymagań ze stażem („min. 3 lata”) szacuje łączny staż z dat w CV (pomija edukację); za mało lat → `czesciowe`;
+- języki – poziom (B2, C1…) porównywany z wymaganym; wzmianki typu „w trakcie nauki”, „planuję” obniżają status do `czesciowe`;
+- kompetencje miękkie oznacza „do oceny” i nie wlicza ich do wyniku.
+
+Wynik liczony jest tym samym wzorem co dopasowanie AI (poniżej). Jest to **wstępne sito**: nie rozumie kontekstu tak jak AI – traktuj je jako sposób na szybkie uporządkowanie listy, a AI uruchamiaj dla kandydatów, którzy przeszli do selekcji.
 
 ### Dopasowanie (0–100%)
 
@@ -209,7 +274,8 @@ Przed włączeniem Claude API **skonsultuj to z osobą odpowiedzialną za ochron
 ### Dostęp
 
 - Aplikacja jest chroniona jednym hasłem, ustawianym przy pierwszym uruchomieniu (przechowywany jest tylko skrót scrypt) albo `APP_PASSWORD` w `.env`; sesja ważna 7 dni.
-- Uruchamiaj ją tylko w sieci wewnętrznej. Przy udostępnieniu poza komputer lokalny użyj HTTPS (np. reverse proxy) i ustaw `COOKIE_SECURE=true`.
+- Wersja Windows działa tylko na komputerze lokalnym. Wersja serwerowa: HTTPS (Caddy), `COOKIE_SECURE=true`, publiczny jest wyłącznie formularz „Aplikuj”; panel można dodatkowo ograniczyć do adresów biura/VPN (`ADMIN_ALLOWED_IPS`).
+- **Kandydaci z formularza**: zapisywana jest data i dokładna treść zaakceptowanych zgód (widoczne na karcie kandydata). Klauzulę informacyjną (`Ustawienia → Formularz „Aplikuj”`) zatwierdź z IOD przed publikacją linków.
 - Brak kont indywidualnych i dziennika zmian per użytkownik – jeśli to potrzebne, wymaga rozbudowy.
 
 ## Docker
@@ -238,7 +304,7 @@ npm run typecheck
 npm run lint
 ```
 
-Testy obejmują: liczenie dopasowania i potencjału, weryfikację cytatów, ekstrakcję DOCX (nagłówki, listy, tabele), PDF (kolumny, układ „data | opis”, scalanie wierszy), OCR skanów i wykrywanie nieczytelnych plików, usuwanie danych (RODO) i retencję, silnik lokalny (na atrapie serwera Ollama: schemat JSON, temperatura 0, pobieranie modelu, test szybkości) i szacowanie kosztów.
+Testy obejmują: szybkie dopasowanie (synonimy, technologie pokrewne, staż, języki), formularz „Aplikuj” (zgody, duplikaty, typy plików, zamknięta oferta), migrację bazy z wersji 1.0.0 bez utraty analiz, liczenie dopasowania i potencjału, weryfikację cytatów, ekstrakcję DOCX (nagłówki, listy, tabele), PDF (kolumny, układ „data | opis”, scalanie wierszy), OCR skanów i wykrywanie nieczytelnych plików, usuwanie danych (RODO) i retencję, silnik lokalny (na atrapie serwera Ollama: schemat JSON, temperatura 0, pobieranie modelu, test szybkości) i szacowanie kosztów.
 
 ## Struktura projektu
 
@@ -254,8 +320,11 @@ src/lib/
   extract/     ekstrakcja tekstu: DOCX, PDF (kolejność kolumn), OCR, .doc
   ai/          wywołania Claude API, schematy odpowiedzi, prompty
   scoring/     deterministyczne liczenie wyników
-  jobs/        kolejka analiz (wznawiana po restarcie)
-  services/    oferty, kandydaci, retencja
+  matching/    szybkie dopasowanie bez AI
+  apply/       publiczny formularz „Aplikuj”: źródła, zgody, ochrona przed spamem
+  jobs/        kolejki: odczyt plików i analizy AI (wznawiane po restarcie)
+  services/    oferty, kandydaci, etapy, retencja
+deploy/        Caddyfile dla wersji serwerowej
 storage/       DANE OSOBOWE: baza i pliki (poza repozytorium)
 tests/         testy (Vitest)
 ```
@@ -264,6 +333,8 @@ tests/         testy (Vitest)
 
 - Kolejność tekstu w PDF jest odtwarzana heurystycznie – nietypowe układy (tekst w grafice, obrócone napisy) mogą zostać odczytane z błędami. Odczytany tekst widać na dole karty kandydata.
 - Jakość OCR zależy od jakości skanu; przy niskiej pewności pojawia się ostrzeżenie.
+- Szybkie dopasowanie opiera się na słowach kluczowych: nie odróżni „pracowałem z X” od „zespół obok używał X”, a staż liczy łącznie (nie osobno dla każdej technologii). Fałszywe trafienia/pominięcia widać w tabeli (kolumna „Fragment CV”).
+- Formularz „Aplikuj” wymaga wersji serwerowej z domeną i HTTPS; kandydat dołącza jeden plik CV.
 - Model lokalny na komputerze bez karty graficznej jest wolny (minuty na CV), a małe modele (4B) oceniają mniej trafnie niż Claude – weryfikuj wyniki, zwłaszcza dowody oznaczone „?”.
 - Kolejka analiz działa w procesie aplikacji (jedna instancja). SQLite wystarcza dla jednego działu – przy wielu równoczesnych użytkownikach warto przejść na PostgreSQL.
 - Tekst w nagłówkach/stopkach dokumentów Word jest odczytywany; pola tekstowe (text boxy) – zależnie od dokumentu.

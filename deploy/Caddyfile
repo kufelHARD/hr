@@ -1,0 +1,29 @@
+# Caddy – reverse proxy z automatycznym certyfikatem HTTPS (Let's Encrypt) dla ATS.
+# DOMAIN i ADMIN_ALLOWED_IPS pochodzą z pliku .env (zob. .env.server.example).
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	# Panel HR (wszystko poza formularzem „Aplikuj”) – opcjonalnie tylko z adresów firmy.
+	# Domyślnie dostęp z każdego adresu (chroni go hasło aplikacji).
+	@admin {
+		not path /aplikuj/* /api/aplikuj/* /_next/* /favicon.ico
+		not remote_ip {$ADMIN_ALLOWED_IPS:0.0.0.0/0 ::/0}
+	}
+	respond @admin "Panel HR jest dostępny tylko z sieci firmowej." 403
+
+	# limit rozmiaru zgłoszenia z formularza (CV do kilkunastu MB)
+	request_body /api/aplikuj/* {
+		max_size 20MB
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	reverse_proxy app:3000
+}
