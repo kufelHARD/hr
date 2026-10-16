@@ -29,10 +29,11 @@ Wewnętrzna aplikacja działu HR (prosty ATS) do zarządzania ofertami pracy, zb
 
 ## Co potrafi
 
-- **Oferty pracy** – dodawanie z plików Word (.docx; stary .doc konwertowany przez LibreOffice), także kilku naraz, lub z wklejonej treści. AI automatycznie odczytuje z pliku stanowisko i wymagane kompetencje (wymagane / mile widziane, kategoria, waga 1–3) – niezależnie od nazw sekcji i formatowania (listy, tabele, pogrubione nagłówki). Domyślnie oferta jest od razu aktywna; wymagania można w każdej chwili poprawić (albo odznaczyć automatyczną aktywację i przejrzeć je przed startem). Każda zmiana wymagań tworzy nową wersję. Archiwizacja, usuwanie, pobieranie oryginału.
+- **Oferty pracy** – dodawanie z plików Word (.docx; stary .doc konwertowany przez LibreOffice), także kilku naraz, lub z wklejonej treści. AI automatycznie odczytuje z pliku stanowisko i wymagane kompetencje (wymagane / mile widziane, kategoria, waga 1–3) – niezależnie od nazw sekcji i formatowania (listy, tabele, pogrubione nagłówki). Wynik AI jest dodatkowo sprawdzany z sekcjami ogłoszenia odczytanymi bez AI („Wymagania”, „Mile widziane”, „Dodatkowym atutem będzie”, „Nice to have”…): punkty pominięte przez AI są dopisywane, a punkty z sekcji „mile widziane” zawsze mają typ „mile widziane”. Gdy AI jest niedostępne, wymagania powstają z samych sekcji ogłoszenia. Domyślnie oferta jest od razu aktywna; wymagania można w każdej chwili poprawić (albo odznaczyć automatyczną aktywację i przejrzeć je przed startem). Każda zmiana wymagań tworzy nową wersję. Archiwizacja, usuwanie, pobieranie oryginału.
 - **Kandydaci** – wgrywanie wielu CV naraz (przeciągnij i upuść; PDF, DOCX, DOC) albo automatycznie przez publiczny formularz „Aplikuj”. Ekstrakcja tekstu z zachowaniem kolejności w CV wielokolumnowych, OCR (polski + angielski) dla skanów. Każde CV od razu dostaje **szybkie dopasowanie (bez AI)** – tabelę wymagań ze statusem i fragmentem CV. Imię i nazwisko jest odczytywane automatycznie (słownik imion, zgodność z adresem e-mail i nazwą pliku, etykiety „Imię i nazwisko:”, układy z paskiem bocznym, WIELKIE i rozstrzelone litery); takie imię ma na karcie kandydata oznaczenie „odczytane z CV” i można je poprawić – poprawki ręczne, imiona z formularza i z analizy AI nie są nadpisywane.
 - **Etapy rekrutacji (ATS)** – Nowe → Selekcja → Rozmowa → Oferta → Zatrudniony / Odrzucony, zakładki z liczbą kandydatów, historia zmian etapu, źródło aplikacji (pracuj.pl, justjoin.it…), sortowanie po dopasowaniu, potencjale lub dacie.
 - **Analiza AI na żądanie** – przycisk „✨ Analiza AI” na karcie kandydata albo „Analiza AI dla tego etapu” (np. tylko dla kandydatów w Selekcji). Analiza działa w tle; w tym czasie można pracować dalej.
+- **Podgląd CV** – po kliknięciu kandydata oryginalne CV jest widoczne od razu obok wyników (PDF – przeglądarka, Word – z formatowaniem i zdjęciami); podgląd można ukryć, aby tabele zajęły całą szerokość.
 - **Wynik AI kandydata** – opis, dwa wskaźniki (Dopasowanie %, Potencjał %), tabela wymagań ze statusem, dowodem z CV i uzasadnieniem, składowe potencjału, mocne i słabe strony, technologie pokrewne, pytania na rozmowę, notatki rekrutera, podgląd i pobranie oryginalnego CV, historia analiz.
 - **Archiwum** – wszystko zapisane trwale; ponowna analiza nie nadpisuje poprzedniej. Wyszukiwarka kandydatów we wszystkich ofertach (imię i nazwisko, technologia, słowo kluczowe – także bez polskich znaków). Przypisanie istniejącego kandydata do innej oferty bez ponownego wgrywania pliku.
 - **Ustawienia** – edycja mapy technologii pokrewnych i opisu firmy z poziomu aplikacji.
@@ -141,6 +142,7 @@ Hasło, silnik AI i klucz Claude ustawia się w aplikacji. Plik `.env` (kopia `.
 | `CONFIG_DIR`, `PROMPTS_DIR`, `BACKUP_DIR` | foldery konfiguracji, promptów i kopii (domyślnie `config`, `prompts`, `backups`) |
 | `ANALYSIS_CONCURRENCY` | równoległe analizy dla Claude (model lokalny – zawsze 1) |
 | `OCR_ENABLED`, `SOFFICE_PATH`, `COOKIE_SECURE` | OCR skanów, ścieżka LibreOffice, ciasteczka tylko po HTTPS |
+| `OCR_WORKERS` | równoległe wątki OCR (domyślnie połowa rdzeni, 1–3; każdy ok. 100 MB RAM) |
 
 Wersja produkcyjna: `npm run build && npm start`.
 

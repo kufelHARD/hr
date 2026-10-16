@@ -6,6 +6,8 @@ import { cx } from "@/components/ui";
 
 type Item = { name: string; state: "czeka" | "wysyłanie" | "ok" | "błąd"; message?: string };
 
+const PARALLEL_UPLOADS = 4;
+
 const ACCEPT = ".pdf,.docx,.doc,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword";
 
 export function CvUploader({ offerId }: { offerId: string }) {
@@ -19,21 +21,37 @@ export function CvUploader({ offerId }: { offerId: string }) {
     const start = items.length;
     setItems((it) => [...it, ...files.map((f) => ({ name: f.name, state: "czeka" as const }))]);
     setBusy(true);
-    for (let i = 0; i < files.length; i++) {
-      const idx = start + i;
-      setItems((it) => it.map((x, j) => (j === idx ? { ...x, state: "wysyłanie" } : x)));
-      try {
-        const fd = new FormData();
-        fd.set("plik", files[i]);
-        const res = await fetch(`/api/oferty/${offerId}/cv`, { method: "POST", body: fd });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error ?? `Błąd (${res.status})`);
-        setItems((it) => it.map((x, j) => (j === idx ? { ...x, state: "ok", message: data.note } : x)));
-      } catch (e) {
-        setItems((it) => it.map((x, j) => (j === idx ? { ...x, state: "błąd", message: (e as Error).message } : x)));
+    const set = (idx: number, patch: Partial<Item>) => setItems((it) => it.map((x, j) => (j === idx ? { ...x, ...patch } : x)));
+    // lista kandydatów odświeżana co najwyżej raz na sekundę (a nie po każdym pliku)
+    let lastRefresh = 0;
+    const refreshSoon = () => {
+      const now = Date.now();
+      if (now - lastRefresh > 1000) {
+        lastRefresh = now;
+        router.refresh();
       }
-      router.refresh();
-    }
+    };
+    let next = 0;
+    const worker = async () => {
+      while (next < files.length) {
+        const i = next++;
+        set(start + i, { state: "wysyłanie" });
+        try {
+          const fd = new FormData();
+          fd.set("plik", files[i]);
+          const res = await fetch(`/api/oferty/${offerId}/cv`, { method: "POST", body: fd });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.error ?? `Błąd (${res.status})`);
+          set(start + i, { state: "ok", message: data.note });
+        } catch (e) {
+          set(start + i, { state: "błąd", message: (e as Error).message });
+        }
+        refreshSoon();
+      }
+    };
+    // kilka plików wysyłanych jednocześnie
+    await Promise.all(Array.from({ length: Math.min(PARALLEL_UPLOADS, files.length) }, worker));
+    router.refresh();
     setBusy(false);
   }
 

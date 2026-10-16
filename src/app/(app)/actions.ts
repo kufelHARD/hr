@@ -60,7 +60,7 @@ export async function saveRequirementsAction(input: z.input<typeof saveRequireme
 export async function regenerateDraftAction(offerId: string): Promise<Result> {
   const res = await regenerateDraft(offerId);
   revalidatePath(`/oferty/${offerId}/wymagania`);
-  return res.ok ? { ok: true, message: "Wymagania wyodrębnione ponownie." } : { error: res.error };
+  return res.ok ? { ok: true, message: res.error ?? "Wymagania wyodrębnione ponownie." } : { error: res.error };
 }
 
 export async function archiveOfferAction(offerId: string, archived: boolean): Promise<Result> {

@@ -7,6 +7,7 @@ import net from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { migrate } from "./migrate.mjs";
+import { syncDefaults } from "./defaults.mjs";
 
 const APP_DIR = path.dirname(fileURLToPath(import.meta.url)); // …\Porownywarka-CV\program
 const ROOT = path.resolve(APP_DIR, "..");
@@ -14,16 +15,6 @@ const DATA = path.join(ROOT, "dane");
 const LOGS = path.join(DATA, "logi");
 
 const log = (msg) => console.log(`[${new Date().toLocaleTimeString("pl-PL")}] ${msg}`);
-
-function copyMissing(src, dst) {
-  fs.mkdirSync(dst, { recursive: true });
-  for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
-    const s = path.join(src, entry.name);
-    const d = path.join(dst, entry.name);
-    if (entry.isDirectory()) copyMissing(s, d);
-    else if (!fs.existsSync(d)) fs.copyFileSync(s, d);
-  }
-}
 
 function portFree(port) {
   return new Promise((resolve) => {
@@ -63,8 +54,12 @@ async function main() {
   fs.mkdirSync(path.join(DATA, "files", "cv"), { recursive: true });
   fs.mkdirSync(path.join(DATA, "files", "offers"), { recursive: true });
   fs.mkdirSync(LOGS, { recursive: true });
-  copyMissing(path.join(APP_DIR, "config"), path.join(DATA, "konfiguracja"));
-  copyMissing(path.join(APP_DIR, "prompts"), path.join(DATA, "prompty"));
+  //    pliki domyślne niezmienione przez użytkownika są aktualizowane do wersji z nowego programu
+  const updated = [
+    ...syncDefaults(path.join(APP_DIR, "config"), path.join(DATA, "konfiguracja")),
+    ...syncDefaults(path.join(APP_DIR, "prompts"), path.join(DATA, "prompty")),
+  ];
+  if (updated.length) log(`Zaktualizowano domyślne pliki: ${updated.join(", ")}.`);
 
   // 2. baza danych
   const dbFile = path.join(DATA, "app.db");

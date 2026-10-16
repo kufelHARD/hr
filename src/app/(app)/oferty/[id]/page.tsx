@@ -81,7 +81,8 @@ export default async function OfferPage({ params, searchParams }: PageProps<"/of
       const yv = sort === "potencjal" ? (y.analysis?.potentialScore ?? -1) : (y.match ?? -1);
       return yv - xv;
     });
-  const anyPending = offer.applications.some((a) => FILE_PENDING.includes(a.status) || AI_PENDING.includes(a.aiStatus ?? ""));
+  const filesPending = offer.applications.some((a) => FILE_PENDING.includes(a.status));
+  const anyPending = filesPending || offer.applications.some((a) => AI_PENDING.includes(a.aiStatus ?? ""));
   const stageOptions = STAGES.map((s) => ({ key: s, label: STAGE_INFO[s].label }));
   const link = (params: Record<string, string | null>) => {
     const q = new URLSearchParams();
@@ -92,7 +93,8 @@ export default async function OfferPage({ params, searchParams }: PageProps<"/of
 
   return (
     <div className="space-y-6">
-      <AutoRefresh active={anyPending} />
+      {/* odczyt plików trwa sekundy – częste odświeżanie; analiza AI – minuty */}
+      <AutoRefresh active={anyPending} intervalMs={filesPending ? 1500 : 4000} />
       <div>
         <Link href={readOnly ? "/?status=zarchiwizowana" : "/"} className="text-sm text-slate-500 hover:text-slate-800">
           ← Oferty

@@ -34,7 +34,8 @@ function pump(lane: Lane, limit: () => number, run: (id: string) => Promise<void
   }
 }
 
-const fileLimit = () => 2;
+// odczyt plików: tyle równolegle, ile wątków OCR (skany są najwolniejsze), co najmniej 2
+const fileLimit = () => Math.max(2, env.ocrWorkers);
 const aiLimit = () => (getAiSettings().provider === "ollama" ? 1 : env.analysisConcurrency);
 
 /** Ekstrakcja tekstu + szybkie dopasowanie. */

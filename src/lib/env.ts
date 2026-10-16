@@ -1,3 +1,4 @@
+import os from "node:os";
 import path from "node:path";
 
 /** Katalog projektu – stąd czytane są config/ i prompts/. */
@@ -39,6 +40,11 @@ export const env = {
   },
   get ocrEnabled() {
     return str("OCR_ENABLED", "true").toLowerCase() !== "false";
+  },
+  /** Liczba równoległych wątków OCR (domyślnie połowa rdzeni procesora, 1–3). */
+  get ocrWorkers() {
+    const auto = Math.min(3, Math.max(1, Math.floor(os.availableParallelism() / 2)));
+    return Math.max(1, Math.floor(num("OCR_WORKERS", auto)));
   },
   get sofficePath() {
     return str("SOFFICE_PATH");

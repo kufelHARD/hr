@@ -91,6 +91,7 @@ async function main() {
   copy(path.join(ROOT, "prisma", "migrations"), path.join(APP, "prisma", "migrations"));
   copy(path.join(ROOT, "launcher", "uruchom.mjs"), path.join(APP, "uruchom.mjs"));
   copy(path.join(ROOT, "launcher", "migrate.mjs"), path.join(APP, "migrate.mjs"));
+  copy(path.join(ROOT, "launcher", "defaults.mjs"), path.join(APP, "defaults.mjs"));
   // uruchom.mjs importuje ./migrate.mjs – w paczce oba pliki leżą obok siebie
   const appPkg = { name: pkg.name, version: pkg.version, private: true, dependencies: pkg.dependencies, overrides: pkg.overrides };
   fs.writeFileSync(path.join(APP, "package.json"), JSON.stringify(appPkg, null, 2));

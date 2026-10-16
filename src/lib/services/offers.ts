@@ -3,6 +3,7 @@ import * as z from "zod/v4";
 import { db } from "@/lib/db";
 import { detectFileKind, extractDocument, UnsupportedFileError } from "@/lib/extract";
 import { extractRequirements } from "@/lib/ai/requirements";
+import { draftFromOffer } from "@/lib/offers/sections";
 import { AiError } from "@/lib/ai/client";
 import { REQUIREMENT_CATEGORIES, type OfferExtraction } from "@/lib/ai/schemas";
 import { REQUIREMENT_TYPES } from "@/lib/scoring";
@@ -89,10 +90,17 @@ export async function createOfferDraft(input: {
 
   let draft: OfferExtraction | null = null;
   let draftError: string | null = null;
+  let aiNote: string | undefined;
   try {
     draft = await extractRequirements(rawText);
   } catch (e) {
     draftError = e instanceof AiError ? e.message : `Błąd AI: ${(e as Error).message}`;
+    // AI niedostępne – wymagania z sekcji ogłoszenia („Wymagania”, „Mile widziane”…)
+    draft = draftFromOffer(rawText);
+    if (draft) {
+      aiNote = `${draftError} Wymagania odczytano z sekcji ogłoszenia bez AI – sprawdź je.`;
+      draftError = null;
+    }
   }
 
   const title = input.title?.trim() || draft?.stanowisko || originalFileName?.replace(/\.[^.]+$/, "") || "Nowa oferta";
@@ -126,14 +134,14 @@ export async function createOfferDraft(input: {
       })),
       AUTO_VERSION_NOTE,
     );
-    if (saved.ok) return { ok: true, offerId: offer.id, activated: true, requirementCount: draft.wymagania.length };
+    if (saved.ok) return { ok: true, offerId: offer.id, activated: true, requirementCount: draft.wymagania.length, aiError: aiNote };
   }
   return {
     ok: true,
     offerId: offer.id,
     activated: false,
     requirementCount: draft?.wymagania.length ?? 0,
-    aiError: draftError ?? undefined,
+    aiError: draftError ?? aiNote,
   };
 }
 
@@ -147,6 +155,11 @@ export async function regenerateDraft(offerId: string): Promise<{ ok: boolean; e
     return { ok: true };
   } catch (e) {
     const error = e instanceof AiError ? e.message : `Błąd AI: ${(e as Error).message}`;
+    const fallback = draftFromOffer(offer.rawText);
+    if (fallback) {
+      await db.jobOffer.update({ where: { id: offerId }, data: { draftJson: JSON.stringify(fallback), draftError: null } });
+      return { ok: true, error: `${error} Wymagania odczytano z sekcji ogłoszenia bez AI – sprawdź je.` };
+    }
     await db.jobOffer.update({ where: { id: offerId }, data: { draftError: error } });
     return { ok: false, error };
   }

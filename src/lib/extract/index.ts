@@ -2,7 +2,12 @@ import path from "node:path";
 import { env } from "@/lib/env";
 import { convertDocToDocx, DocConversionUnavailableError } from "./doc";
 import { extractDocx } from "./docx";
-import { extractPdfPages, MIN_CHARS_PER_PAGE, renderPdfPageToPng } from "./pdf";
+import { extractPdfPages, MIN_CHARS_PER_PAGE, renderPdfPagesToPng } from "./pdf";
+
+// OCR najwyżej dla tylu stron dokumentu (CV rzadko ma więcej; dłuższe skany to zwykle załączone dyplomy/certyfikaty).
+const MAX_OCR_PAGES = 5;
+// Strona bez obrazów, ale z tyloma ścieżkami wektorowymi może zawierać tekst zamieniony na krzywe.
+const MIN_PATHS_FOR_OCR = 30;
 
 export type ExtractionMethod = "tekst" | "ocr" | "nieudana";
 
@@ -55,17 +60,28 @@ async function extractPdf(buffer: Buffer): Promise<ExtractionResult> {
   const warnings: string[] = [];
   const { pages, pageCount } = await extractPdfPages(buffer);
 
-  const unreadable = pages.filter((p) => p.charCount < MIN_CHARS_PER_PAGE || letterRatio(p.text) < 0.5);
+  // OCR tylko dla stron, na których jest co rozpoznać: tekst z „krzakami” (font bez mapowania znaków)
+  // albo mało tekstu i grafika (skan, tekst zamieniony na krzywe). Pusta strona nie wymaga OCR.
+  const unreadable = pages.filter(
+    (p) =>
+      (p.charCount > 0 && letterRatio(p.text) < 0.5) ||
+      (p.charCount < MIN_CHARS_PER_PAGE && (!p.graphics || p.graphics.images > 0 || p.graphics.paths >= MIN_PATHS_FOR_OCR)),
+  );
   let usedOcr = false;
 
   if (unreadable.length > 0) {
     if (!env.ocrEnabled) {
       warnings.push(`Strony bez warstwy tekstowej (${unreadable.map((p) => p.pageNumber).join(", ")}) – OCR wyłączony.`);
     } else {
-      for (const p of unreadable) {
+      const toOcr = unreadable.slice(0, MAX_OCR_PAGES);
+      if (unreadable.length > toOcr.length) {
+        warnings.push(`OCR wykonano dla pierwszych ${MAX_OCR_PAGES} stron bez tekstu (z ${unreadable.length}) – pozostałe pominięto.`);
+      }
+      const { ocrImage } = await import("./ocr");
+      // strony renderowane po kolei, a rozpoznawane równolegle w puli wątków OCR
+      const jobs: Promise<void>[] = [];
+      const ocrPage = async (p: (typeof pages)[number], png: Buffer) => {
         try {
-          const png = await renderPdfPageToPng(buffer, p.pageNumber);
-          const { ocrImage } = await import("./ocr");
           const { text, confidence } = await ocrImage(png);
           const clean = text.replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
           if (clean.replace(/\s/g, "").length > p.charCount) {
@@ -79,10 +95,20 @@ async function extractPdf(buffer: Buffer): Promise<ExtractionResult> {
         } catch (e) {
           warnings.push(`Strona ${p.pageNumber}: OCR nie powiódł się (${(e as Error).message}).`);
         }
+      };
+      try {
+        await renderPdfPagesToPng(
+          buffer,
+          toOcr.map((p) => p.pageNumber),
+          (pageNumber, png) => jobs.push(ocrPage(toOcr.find((p) => p.pageNumber === pageNumber)!, png)),
+        );
+      } catch (e) {
+        warnings.push(`Nie udało się przygotować stron do OCR (${(e as Error).message}).`);
       }
+      await Promise.all(jobs);
       if (usedOcr) {
         warnings.push(
-          `Tekst odczytany przez OCR (strony: ${unreadable.map((p) => p.pageNumber).join(", ")}). Sprawdź poprawność kluczowych informacji.`,
+          `Tekst odczytany przez OCR (strony: ${toOcr.map((p) => p.pageNumber).join(", ")}). Sprawdź poprawność kluczowych informacji.`,
         );
       }
     }

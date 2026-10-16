@@ -128,3 +128,57 @@ export function CopyField({ value, label }: { value: string; label: string }) {
     </div>
   );
 }
+
+const PREVIEW_KEY = "porownywarka:ukryj-podglad-cv";
+
+/**
+ * Układ „treść + podgląd z boku”. Podgląd można ukryć (wybór zapamiętany w przeglądarce),
+ * wtedy treść zajmuje całą szerokość.
+ */
+export function WithSidePreview({ preview, title, children }: { preview: ReactNode; title: string; children: ReactNode }) {
+  const [hidden, setHidden] = useState(false);
+  useEffect(() => {
+    try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- odczyt preferencji dopiero po stronie przeglądarki
+      setHidden(localStorage.getItem(PREVIEW_KEY) === "1");
+    } catch {
+      /* brak dostępu do localStorage – podgląd widoczny */
+    }
+  }, []);
+  const toggle = () => {
+    const next = !hidden;
+    setHidden(next);
+    try {
+      localStorage.setItem(PREVIEW_KEY, next ? "1" : "0");
+    } catch {
+      /* ignoruj */
+    }
+  };
+  if (hidden) {
+    return (
+      <div className="space-y-3">
+        <div className="flex justify-end">
+          <button type="button" onClick={toggle} className={cx(buttonStyles.secondary, "py-1.5")}>
+            Pokaż {title}
+          </button>
+        </div>
+        <div className="min-w-0 space-y-6">{children}</div>
+      </div>
+    );
+  }
+  return (
+    <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,46%)]">
+      <div className="relative xl:sticky xl:top-4">
+        {preview}
+        <button
+          type="button"
+          onClick={toggle}
+          className="absolute -top-3 right-3 rounded-full border border-slate-200 bg-white px-2.5 py-0.5 text-xs text-slate-600 shadow-sm hover:bg-slate-50"
+        >
+          Ukryj {title}
+        </button>
+      </div>
+      <div className="min-w-0 space-y-6 xl:order-first">{children}</div>
+    </div>
+  );
+}

@@ -42,7 +42,27 @@ export async function openPdf(data: Uint8Array) {
   return { doc, close: () => task.destroy() };
 }
 
-export type PdfPageText = { pageNumber: number; text: string; charCount: number };
+export type PdfPageText = {
+  pageNumber: number;
+  text: string;
+  charCount: number;
+  /** grafika na stronie z małą ilością tekstu: obrazy i ścieżki wektorowe (np. skan albo tekst zamieniony na krzywe) */
+  graphics?: { images: number; paths: number };
+};
+
+/** Liczy obrazy i ścieżki na stronie – strona bez nich nie ma czego rozpoznawać przez OCR. */
+async function pageGraphics(page: Awaited<ReturnType<Awaited<ReturnType<typeof openPdf>>["doc"]["getPage"]>>) {
+  const { OPS } = await loadPdfJs();
+  const imageOps = new Set<number>([OPS.paintImageXObject, OPS.paintInlineImageXObject, OPS.paintImageMaskXObject, OPS.paintImageXObjectRepeat, OPS.paintInlineImageXObjectGroup, OPS.paintImageMaskXObjectGroup]);
+  const list = await page.getOperatorList();
+  let images = 0;
+  let paths = 0;
+  for (const fn of list.fnArray) {
+    if (imageOps.has(fn)) images++;
+    else if (fn === OPS.constructPath) paths++;
+  }
+  return { images, paths };
+}
 
 /** Ekstrakcja tekstu ze wszystkich stron z odtworzeniem kolejności czytania (kolumny). */
 export async function extractPdfPages(buffer: Buffer): Promise<{ pages: PdfPageText[]; pageCount: number }> {
@@ -71,7 +91,9 @@ export async function extractPdfPages(buffer: Buffer): Promise<{ pages: PdfPageT
         });
       }
       const text = layoutPage(boxes);
-      pages.push({ pageNumber: p, text, charCount: text.replace(/\s/g, "").length });
+      const charCount = text.replace(/\s/g, "").length;
+      const graphics = charCount < MIN_CHARS_PER_PAGE ? await pageGraphics(page) : undefined;
+      pages.push({ pageNumber: p, text, charCount, graphics });
       page.cleanup();
     }
     return { pages, pageCount: doc.numPages };
@@ -80,24 +102,39 @@ export async function extractPdfPages(buffer: Buffer): Promise<{ pages: PdfPageT
   }
 }
 
-/** Renderuje stronę PDF do PNG (dla OCR). */
-export async function renderPdfPageToPng(buffer: Buffer, pageNumber: number, scale = 2.5): Promise<Buffer> {
+/** Renderuje strony PDF do PNG (dla OCR), otwierając dokument raz; strony podawane kolejno przez `onPage`. */
+export async function renderPdfPagesToPng(
+  buffer: Buffer,
+  pageNumbers: number[],
+  onPage: (pageNumber: number, png: Buffer) => void,
+  scale = 2.5,
+): Promise<void> {
   const { createCanvas } = await import("@napi-rs/canvas");
   const { doc, close } = await openPdf(new Uint8Array(buffer));
   try {
-    const page = await doc.getPage(pageNumber);
-    const viewport = page.getViewport({ scale });
-    const canvas = createCanvas(Math.ceil(viewport.width), Math.ceil(viewport.height));
-    const ctx = canvas.getContext("2d");
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    await page.render({
-      canvas: null,
-      canvasContext: ctx as unknown as CanvasRenderingContext2D,
-      viewport,
-    }).promise;
-    return canvas.toBuffer("image/png");
+    for (const pageNumber of pageNumbers) {
+      const page = await doc.getPage(pageNumber);
+      const viewport = page.getViewport({ scale });
+      const canvas = createCanvas(Math.ceil(viewport.width), Math.ceil(viewport.height));
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      await page.render({
+        canvas: null,
+        canvasContext: ctx as unknown as CanvasRenderingContext2D,
+        viewport,
+      }).promise;
+      onPage(pageNumber, canvas.toBuffer("image/png"));
+      page.cleanup();
+    }
   } finally {
     await close();
   }
+}
+
+/** Renderuje jedną stronę PDF do PNG. */
+export async function renderPdfPageToPng(buffer: Buffer, pageNumber: number, scale = 2.5): Promise<Buffer> {
+  let out: Buffer | null = null;
+  await renderPdfPagesToPng(buffer, [pageNumber], (_, png) => (out = png), scale);
+  return out!;
 }

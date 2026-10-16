@@ -57,7 +57,7 @@ function createTurndown(): TurndownService {
 }
 
 /** Tekst z nagłówków/stopek Worda (mammoth je pomija, a CV często mają tam imię i kontakt). */
-async function headerFooterText(buffer: Buffer): Promise<string[]> {
+export async function headerFooterText(buffer: Buffer): Promise<string[]> {
   try {
     const zip = await JSZip.loadAsync(buffer);
     const out: string[] = [];

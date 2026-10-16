@@ -20,3 +20,8 @@ Szczegóły: plik `INSTRUKCJA.txt` w paczce.
 
 ### Poprawki w 1.1.1
 - Dokładniejsze odczytywanie imienia i nazwiska z CV (CV z paskiem bocznym, nazwiska WIELKIMI literami, etykiety „Imię i nazwisko:”, nazwa pliku). Imiona błędnie odczytane przez 1.1.0 (np. nazwa miasta) są poprawiane automatycznie przy starcie; imion poprawionych ręcznie aplikacja nie zmienia.
+
+### Nowości w 1.2.0
+- **Wymagania z ogłoszenia:** punkty z sekcji „Mile widziane” / „Dodatkowym atutem będzie” / „Nice to have” są zawsze odczytywane jako mile widziane, a pominięte przez AI – dopisywane. Gdy AI jest niedostępne, wymagania powstają z sekcji ogłoszenia. Prompt odczytu wymagań zostanie zaktualizowany automatycznie, jeśli nie był zmieniany ręcznie.
+- **Szybsze wgrywanie CV:** kilka plików wysyłanych jednocześnie, OCR skanów równolegle na kilku rdzeniach, pomijanie OCR na pustych stronach, przygotowanie OCR przy starcie aplikacji.
+- **Podgląd CV od razu po kliknięciu kandydata** (PDF i Word), obok wyników; można go ukryć.
