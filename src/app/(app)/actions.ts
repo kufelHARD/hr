@@ -136,7 +136,7 @@ export async function renameCandidateAction(candidateId: string, fullName: strin
   const name = fullName.trim();
   await db.candidate.update({
     where: { id: candidateId },
-    data: { fullName: name || null, fullNameNormalized: name ? normalizeForSearch(name) : null },
+    data: { fullName: name || null, fullNameNormalized: name ? normalizeForSearch(name) : null, nameSource: name ? "recznie" : null },
   });
   return { ok: true, message: "Zapisano" };
 }

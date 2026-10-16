@@ -384,20 +384,4 @@ export function quickMatch(
 
 // ---------------------------------------------------------------- imię i nazwisko z nagłówka CV
 
-const NOT_NAME = /curriculum|vitae|\bcv\b|resume|zyciorys|życiorys|kontakt|profil|o mnie|doswiadczenie|doświadczenie|umiejetnosci|umiejętności|engineer|administrator|developer|analityk|specjalist|manager|kierownik|senior|junior/i;
-
-/** Proste rozpoznanie imienia i nazwiska z pierwszych linii CV (bez AI). */
-export function guessCandidateName(cvText: string): string | null {
-  const lines = cvText
-    .split("\n")
-    .map((l) => l.replace(/^#+\s*/, "").replace(/\[.*?\]/g, "").trim())
-    .filter(Boolean)
-    .slice(0, 12);
-  for (const l of lines) {
-    if (l.length > 40 || /[@\d:|/•·]/.test(l) || NOT_NAME.test(l)) continue;
-    const words = l.split(/\s+/);
-    if (words.length < 2 || words.length > 3) continue;
-    if (words.every((w) => /^[\p{Lu}][\p{Ll}]+(-[\p{Lu}][\p{Ll}]+)?$/u.test(w))) return l;
-  }
-  return null;
-}
+export { guessCandidateName, isNameFromText, tidyName, legacyGuessCandidateName } from "./name";

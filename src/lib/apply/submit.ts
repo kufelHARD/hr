@@ -76,6 +76,7 @@ export async function submitApplication(input: {
             data: {
               fullName: f.imie,
               fullNameNormalized: normalizeForSearch(f.imie),
+              nameSource: "formularz",
               phone: f.telefon || existing.phone,
               ...(consentFuture ? { consentFuture: true, consentAt: new Date() } : {}),
             },
@@ -84,6 +85,7 @@ export async function submitApplication(input: {
             data: {
               fullName: f.imie,
               fullNameNormalized: normalizeForSearch(f.imie),
+              nameSource: "formularz",
               email,
               phone: f.telefon || null,
               consentFuture,

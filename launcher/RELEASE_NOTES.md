@@ -17,3 +17,6 @@ Szczegóły: plik `INSTRUKCJA.txt` w paczce.
 - **Etapy rekrutacji** (Nowe → Selekcja → Rozmowa → Oferta → Zatrudniony / Odrzucony) z historią zmian.
 - **Formularz „Aplikuj”** z linkami do ogłoszeń (pracuj.pl, justjoin.it…) – wymaga wersji serwerowej (opis w README).
 - Aktualizacja z 1.0.0: podmień folder `program` – dane i dotychczasowe analizy zostaną zachowane.
+
+### Poprawki w 1.1.1
+- Dokładniejsze odczytywanie imienia i nazwiska z CV (CV z paskiem bocznym, nazwiska WIELKIMI literami, etykiety „Imię i nazwisko:”, nazwa pliku). Imiona błędnie odczytane przez 1.1.0 (np. nazwa miasta) są poprawiane automatycznie przy starcie; imion poprawionych ręcznie aplikacja nie zmienia.

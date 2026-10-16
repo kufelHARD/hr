@@ -8,8 +8,15 @@ export async function register() {
   const { resumePendingJobs } = await import("@/lib/jobs/queue");
   const { runRetention } = await import("@/lib/services/retention");
 
-  // wznowienie analiz przerwanych zamknięciem aplikacji
-  setTimeout(() => resumePendingJobs().catch((e) => console.error("[start] wznowienie kolejki:", e.message)), 2000);
+  const { repairCandidateNames } = await import("@/lib/services/names");
+
+  // wznowienie analiz przerwanych zamknięciem aplikacji; poprawa imion odczytanych przez starszą wersję
+  setTimeout(() => {
+    resumePendingJobs().catch((e) => console.error("[start] wznowienie kolejki:", e.message));
+    repairCandidateNames()
+      .then((r) => r.renamed && console.log(`[start] poprawiono imiona kandydatów: ${r.renamed}`))
+      .catch((e) => console.error("[start] imiona kandydatów:", e.message));
+  }, 2000);
 
   // retencja: przy starcie i raz na dobę (tylko jeśli włączona w configu)
   const retention = () => runRetention().catch((e) => console.error("[retencja]", e.message));

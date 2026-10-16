@@ -120,6 +120,11 @@ export default async function CandidatePage({ params, searchParams }: PageProps<
           <div>
             <h1 className="flex flex-wrap items-center gap-3 text-2xl font-semibold">
               {name}
+              {app.candidate.nameSource === "cv" && (
+                <Badge tone="slate" title="Imię i nazwisko odczytane automatycznie z CV – jeśli jest błędne, popraw je przyciskiem obok.">
+                  odczytane z CV
+                </Badge>
+              )}
               {!readOnly && <RenameForm candidateId={app.candidateId} initial={app.candidate.fullName ?? ""} />}
             </h1>
             <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-500">

@@ -4,7 +4,7 @@ import { getAiSettings } from "@/lib/app-settings";
 import { extractDocument } from "@/lib/extract";
 import { analyzeCv } from "@/lib/ai/analyze";
 import { AiError } from "@/lib/ai/client";
-import { quickMatch, guessCandidateName } from "@/lib/matching";
+import { quickMatch, guessCandidateName, isNameFromText, tidyName } from "@/lib/matching";
 import { computeMatchScore, computePotentialScore, type RequirementType } from "@/lib/scoring";
 import { loadScoringConfig, loadTechMap } from "@/lib/settings";
 import { readStoredFile } from "@/lib/storage";
@@ -42,7 +42,7 @@ function toRequirements(version: NonNullable<Awaited<ReturnType<typeof currentVe
 
 /** Szybkie dopasowanie (bez AI) do aktualnej wersji wymagań – zapisywane jako nowy wynik. */
 export async function runQuickMatch(applicationId: string): Promise<void> {
-  const app = await db.application.findUnique({ where: { id: applicationId }, include: { cvDocument: true, candidate: true } });
+  const app = await db.application.findUnique({ where: { id: applicationId }, include: { cvDocument: true } });
   if (!app?.cvDocument.extractedText || app.cvDocument.extractionMethod === "nieudana") return;
   const version = await currentVersion(app.offerId);
   if (!version || version.requirements.length === 0) return;
@@ -51,12 +51,18 @@ export async function runQuickMatch(applicationId: string): Promise<void> {
   await db.quickMatch.create({
     data: { applicationId: app.id, requirementVersionId: version.id, score: result.score, resultJson: JSON.stringify(result) },
   });
-  // imię i nazwisko z nagłówka CV, jeśli jeszcze go nie znamy
-  if (!app.candidate.fullName) {
-    const name = guessCandidateName(app.cvDocument.extractedText);
-    if (name) {
-      await db.candidate.update({ where: { id: app.candidateId }, data: { fullName: name, fullNameNormalized: normalizeForSearch(name) } });
-    }
+}
+
+/**
+ * Imię i nazwisko z CV (a gdy tekstu brak – z nazwy pliku), jeśli go nie znamy albo ustawił je wcześniej ten sam automat.
+ * Imienia z formularza, wpisanego ręcznie ani odczytanego przez AI nie zmienia.
+ */
+async function updateNameFromCv(candidateId: string, text: string | null, fileName: string): Promise<void> {
+  const candidate = await db.candidate.findUnique({ where: { id: candidateId } });
+  if (!candidate || (candidate.fullName && candidate.nameSource !== "cv")) return;
+  const name = guessCandidateName(text ?? "", fileName);
+  if (name && name !== candidate.fullName) {
+    await db.candidate.update({ where: { id: candidateId }, data: { fullName: name, fullNameNormalized: normalizeForSearch(name), nameSource: "cv" } });
   }
 }
 
@@ -81,6 +87,7 @@ export async function processApplication(applicationId: string): Promise<void> {
         },
       });
     }
+    await updateNameFromCv(app.candidateId, doc.extractionMethod === "nieudana" ? null : doc.extractedText, doc.originalFileName);
     if (doc.extractionMethod === "nieudana" || !doc.extractedText) {
       const warnings: string[] = doc.extractionWarnings ? JSON.parse(doc.extractionWarnings) : [];
       await setStatus(app.id, "nieczytelne", warnings.slice(0, 2).join(" ") || "Nie udało się odczytać tekstu z pliku.");
@@ -158,9 +165,15 @@ export async function processAiAnalysis(applicationId: string): Promise<void> {
           durationMs: result.durationMs,
         },
       });
-      const name = out.kandydat.imie_nazwisko?.trim();
-      if (name && !app.candidate.fullName) {
-        await tx.candidate.update({ where: { id: app.candidateId }, data: { fullName: name, fullNameNormalized: normalizeForSearch(name) } });
+      // AI zastępuje tylko imię odczytane automatycznie (nie to z formularza ani wpisane ręcznie),
+      // i tylko gdy podane słowa rzeczywiście występują w CV
+      const aiName = out.kandydat.imie_nazwisko?.trim();
+      if (aiName && (!app.candidate.fullName || app.candidate.nameSource === "cv") && isNameFromText(aiName, app.cvDocument.extractedText ?? "")) {
+        const name = tidyName(aiName);
+        await tx.candidate.update({
+          where: { id: app.candidateId },
+          data: { fullName: name, fullNameNormalized: normalizeForSearch(name), nameSource: "ai" },
+        });
       }
       await tx.application.update({
         where: { id: app.id },
